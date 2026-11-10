@@ -12,7 +12,7 @@ A small black pill around your front camera that shows what's happening on your 
 
 > **Not available for download yet.** A Google Play release is planned. Until then you can read the code and build it yourself (see [Building](#building-from-source)).
 
-<img src="docs/images/island-collapsed.png" alt="The island on the status bar with a timer and a music pill" width="520">
+<img src="docs/images/island-hero.jpg" alt="Island running on a foldable phone: a music pill with album art and equaliser bars, and a navigation pill beside it" width="760">
 
 </div>
 
@@ -56,8 +56,9 @@ A small black pill around your front camera that shows what's happening on your 
 </table>
 
 <div align="center">
-<img src="docs/images/island-expanded.png" alt="The expanded island showing a timer" width="520"><br>
-<sub>Expanded view. Content sits below the camera cut-out.</sub>
+<img src="docs/images/island-collapsed.png" alt="Two pills: a timer and a music pill" width="440">
+<img src="docs/images/island-expanded.png" alt="The expanded island showing a timer" width="440"><br>
+<sub>Two pills (a timer and music), and the expanded view. Content sits below the camera cut-out.</sub>
 </div>
 
 ## Gestures
