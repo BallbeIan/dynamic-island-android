@@ -1,0 +1,42 @@
+name: Bug or device report
+description: Something does not work, or you tried Island on a new phone
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Island has only been tested on one Samsung foldable so far. Reports from other phones are very valuable, **even if everything works**.
+  - type: input
+    id: device
+    attributes:
+      label: Phone model and Android version
+      placeholder: "Google Pixel 8, Android 15"
+    validations:
+      required: true
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Screen
+      options: [Single screen, Foldable inner screen, Foldable cover screen]
+    validations:
+      required: true
+  - type: textarea
+    id: camera
+    attributes:
+      label: Camera alignment
+      description: Does the island line up with your front camera? If not, how far off is it?
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include steps to reproduce, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Quick checks (optional)
+      value: |
+        - Hides while the notification panel is open: yes / no
+        - Hides while a video is full screen: yes / no
+        - Timers / stopwatch show up: yes / no
+        - Music shows up: yes / no

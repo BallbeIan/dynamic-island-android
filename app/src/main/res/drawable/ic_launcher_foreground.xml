@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- black pill -->
+    <path android:fillColor="#000000"
+        android:pathData="M38,44 L70,44 A10,10 0 0 1 70,64 L38,64 A10,10 0 0 1 38,44 Z" />
+    <!-- album-art dot -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M38,48 A6,6 0 1 1 38,60 A6,6 0 1 1 38,48 Z" />
+    <!-- wave bars -->
+    <path android:fillColor="#7CF2B5" android:pathData="M62,50h2v8h-2z" />
+    <path android:fillColor="#7CF2B5" android:pathData="M66,47h2v14h-2z" />
+    <path android:fillColor="#7CF2B5" android:pathData="M70,51h2v6h-2z" />
+</vector>

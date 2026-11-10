@@ -1,0 +1,10 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# private working notes, never published
+CLAUDE_CODE_PROMPT.md
+island-progress.md
