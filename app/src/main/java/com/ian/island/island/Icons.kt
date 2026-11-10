@@ -170,7 +170,6 @@ class BatteryDrawable(private val level: Int, private val charging: Boolean, pri
         // body (portrait-less: landscape battery)
         r.set(2.5f, 6.5f, 20f, 17.5f); c.drawRoundRect(r, 3f, 3f, body)
         r.set(21f, 10.5f, 22.5f, 13.5f); c.drawRect(r, boltP)
-        val inner = 17.5f - 1.6f * 2 - 0.0f
         val w = (level.coerceIn(0, 100) / 100f) * f * (20f - 2.5f - 3.6f)
         r.set(4.1f, 8.1f, 4.1f + w, 15.9f); c.drawRoundRect(r, 1.6f, 1.6f, fillP)
         if (charging) {

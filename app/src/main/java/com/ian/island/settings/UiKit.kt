@@ -15,7 +15,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Switch
-import android.widget.TextView
 
 /**
  * Programmatic settings UI: a scrolling column of grouped cards. [section] starts a labelled card;
@@ -181,40 +180,26 @@ class UiKit(val act: Activity, title: String? = null) {
         addRow(row)
     }
 
-    /** A row showing the current value on the right; tapping opens a single-choice dialog. */
-    fun choice(label: String, key: String, def: String, options: List<Pair<String, String>>, onChange: ((String) -> Unit)? = null) {
-        fun current() = options.firstOrNull { it.first == sp.str(key, def) }?.second
-            ?: options.first { it.first == def }.second
-        val value = valueText(current())
-        val row = rowBase(true).apply {
-            addView(Ui.text(act, 16f, Ui.TEXT).apply { text = label }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dpi(12) })
-            addView(value)
-            addView(Ui.chevron(act), LinearLayout.LayoutParams(dpi(20), dpi(20)).apply { marginStart = dpi(4) })
-            setOnClickListener {
-                val cur = sp.str(key, def)
-                AlertDialog.Builder(act).setTitle(label)
-                    .setSingleChoiceItems(options.map { it.second }.toTypedArray(), options.indexOfFirst { it.first == cur }) { d, i ->
-                        prefs.edit().putString(sp.key(key), options[i].first).apply()
-                        value.text = current(); onChange?.invoke(options[i].first); d.dismiss()
-                    }.show()
-            }
-        }
-        addRow(row)
-    }
+    /** Text option stored under [key]. */
+    fun choice(label: String, key: String, def: String, options: List<Pair<String, String>>, onChange: ((String) -> Unit)? = null) =
+        chooser(label, def, options, { sp.str(key, def) ?: def }, { prefs.edit().putString(sp.key(key), it).apply(); onChange?.invoke(it) })
 
-    fun longChoice(label: String, key: String, def: Long, options: List<Pair<Long, String>>) {
-        fun current() = options.firstOrNull { it.first == prefs.getLong(key, def) }?.second ?: options.first { it.first == def }.second
+    /** Number option stored under [key] (e.g. a timeout). */
+    fun longChoice(label: String, key: String, def: Long, options: List<Pair<Long, String>>) =
+        chooser(label, def, options, { prefs.getLong(key, def) }, { prefs.edit().putLong(key, it).apply() })
+
+    /** A row showing the current option on the right; tapping opens a single-choice dialog. */
+    private fun <T> chooser(label: String, def: T, options: List<Pair<T, String>>, get: () -> T, set: (T) -> Unit) {
+        fun current() = (options.firstOrNull { it.first == get() } ?: options.first { it.first == def }).second
         val value = valueText(current())
         val row = rowBase(true).apply {
             addView(Ui.text(act, 16f, Ui.TEXT).apply { text = label }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dpi(12) })
             addView(value)
             addView(Ui.chevron(act), LinearLayout.LayoutParams(dpi(20), dpi(20)).apply { marginStart = dpi(4) })
             setOnClickListener {
-                val cur = prefs.getLong(key, def)
                 AlertDialog.Builder(act).setTitle(label)
-                    .setSingleChoiceItems(options.map { it.second }.toTypedArray(), options.indexOfFirst { it.first == cur }) { d, i ->
-                        prefs.edit().putLong(key, options[i].first).apply()
-                        value.text = current(); d.dismiss()
+                    .setSingleChoiceItems(options.map { it.second }.toTypedArray(), options.indexOfFirst { it.first == get() }) { d, i ->
+                        set(options[i].first); value.text = current(); d.dismiss()
                     }.show()
             }
         }

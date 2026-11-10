@@ -2,7 +2,6 @@ package com.ian.island.island
 
 import android.content.Context
 import android.content.res.Resources
-import android.graphics.Rect
 import android.os.Build
 import android.view.Display
 import android.view.Surface

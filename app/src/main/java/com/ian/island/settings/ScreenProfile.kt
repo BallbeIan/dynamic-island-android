@@ -68,10 +68,15 @@ class ScreenPrefs(private val prefs: SharedPreferences, private val scope: () ->
         fun baseKey(key: String?): String? = key?.substringBefore('@')
     }
 
-    /** The key a value for [base] is stored under on the current screen. */
+    private var cachedScope: String? = null
+    private val keys = HashMap<String, String>()
+
+    /** The key a value for [base] is stored under on the current screen (cached: this runs per animation frame). */
     fun key(base: String): String {
         val s = scope()
-        return if (base in SCOPED && s != null) "$base@$s" else base
+        if (base !in SCOPED || s == null) return base
+        if (s != cachedScope) { keys.clear(); cachedScope = s }
+        return keys.getOrPut(base) { "$base@$s" }
     }
 
     private fun readKey(base: String): String {

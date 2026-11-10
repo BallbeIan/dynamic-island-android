@@ -8,7 +8,6 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +18,6 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import kotlin.concurrent.thread
-import kotlin.math.roundToInt
 
 /**
  * One app picker for three jobs:
@@ -52,7 +50,7 @@ class AppListActivity : Activity() {
         }
     }
 
-    private fun dpi(v: Int) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).roundToInt()
+    private fun dpi(v: Int) = Ui.dpi(this, v)
 
     private fun makeRow(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL

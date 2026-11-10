@@ -8,7 +8,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Build
-import android.util.TypedValue
 import android.view.View
 import com.ian.island.island.vivid
 
@@ -20,7 +19,7 @@ class PillPreview(private val act: Activity) : View(act), SharedPreferences.OnSh
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val rect = RectF()
 
-    private fun dp(v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, resources.displayMetrics)
+    private fun dp(v: Float) = Ui.dp(act, v)
 
     override fun onAttachedToWindow() { super.onAttachedToWindow(); prefs.registerOnSharedPreferenceChangeListener(this) }
     override fun onDetachedFromWindow() { prefs.unregisterOnSharedPreferenceChangeListener(this); super.onDetachedFromWindow() }

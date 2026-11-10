@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.WallpaperManager
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
@@ -17,7 +16,6 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewOutlineProvider
-import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
@@ -119,6 +117,8 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     private val pill = FrameLayout(ctx)
     private val pillBg = GradientDrawable().apply { setColor(Color.BLACK) }
     private val collapsed = CollapsedView(ctx)
+    /** Off-screen twin used only to measure how wide another activity's collapsed pill would be. */
+    private val probe = CollapsedView(ctx)
     private val banner = BannerView(ctx) { setFocusable(true) }
     private val expandedHost = FrameLayout(ctx)
     private val mediaExp = MediaExpandedView(ctx)
@@ -152,7 +152,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     }
 
     private val wallpaperListener = WallpaperManager.OnColorsChangedListener { _, _ ->
-        handler.post { refreshWallpaper(); refreshAppearance() }
+        handler.post { refreshAppearance() }
     }
 
     init {
@@ -341,7 +341,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         anim?.cancel()
 
         // final width of the incoming main pill, measured on a throwaway view (the real one stays untouched)
-        val probe = CollapsedView(ctx).also { it.bind(p, accentOf(p), dots) }
+        probe.bindTrailing(p, accentOf(p), dots)
         val finalW = collapsedWidth(p, probe, h)
         fun secOffset(pillW: Int) = sign * (pillW / 2f + gap + h / 2f)
 
@@ -456,8 +456,6 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
 
     fun collapseBanner() { if (mode == Mode.BANNER) setMode(Mode.COLLAPSED, false) }
 
-    fun isExpanded(id: String) = mode == Mode.EXPANDED && primary?.id == id
-
     fun updateOffset() {
         params.y = windowY()
         params.x = targetX(curW + curL + curRt + 2 * glowPad())
@@ -466,6 +464,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
 
     fun refreshAppearance() {
         scopeKey = ScreenProfile.scopeOrNull(ctx)
+        refreshWallpaper()      // a binder call, so only here and not on every render
         applyAppearance()
         updateOffset()
         primary?.let { bindContent(it); setMode(if (mode == Mode.HIDDEN) Mode.HIDDEN else mode, contentChanged = false) }
@@ -484,18 +483,29 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     private var camOffsetPx = 0           // camera centre relative to the screen centre
     private var camKnown = false
 
-    /** Re-detects the camera (also after rotation, fold / unfold, resolution change). */
+    private var screenW = CameraLocator.screenWidth(ctx, wm)
+    private var screenSignature = 0L
+
+    /**
+     * Re-detects the camera after the screen changes (rotation, fold / unfold, resolution). This is called on every
+     * window-insets update, which during an animation means every frame, so it returns at once when nothing changed.
+     */
+    @Suppress("DEPRECATION")
     private fun refreshCamera() {
+        val dm = ctx.resources.displayMetrics
+        val sig = (dm.widthPixels.toLong() shl 40) xor (dm.heightPixels.toLong() shl 20) xor
+            (dm.densityDpi.toLong() shl 4) xor (wm.defaultDisplay?.rotation ?: 0).toLong()
+        if (sig == screenSignature) return
+        screenSignature = sig
         scopeKey = ScreenProfile.scopeOrNull(ctx)
+        screenW = CameraLocator.screenWidth(ctx, wm)
         val cam = try { CameraLocator.locate(ctx, wm) } catch (_: Throwable) { null }
-        val screenW = CameraLocator.screenWidth(ctx, wm)
         val half = if (cam != null) cam.width / 2 + ctx.dpi(4) else 0
         val bottom = cam?.bottom ?: 0
         val off = if (cam != null) cam.centerX - screenW / 2 else 0
         val known = cam != null
         if (half == cutoutHalf && bottom == cutoutBottom && off == camOffsetPx && known == camKnown) return
         cutoutHalf = half; cutoutBottom = bottom; camOffsetPx = off; camKnown = known
-        android.util.Log.d("IslandCam", "camera ${if (cam != null) "at x=${cam.centerX} bottom=${cam.bottom} w=${cam.width}" else "not found"} screenW=$screenW offset=$off scope=$scopeKey")
         handler.post { if (attached) { updateOffset(); refreshAppearance() } }
     }
 
@@ -505,7 +515,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
      */
     private fun targetX(rowW: Int): Int {
         val raw = (if (camKnown && sp.bool(Prefs.AUTO_CAMERA, true)) camOffsetPx else 0) + ctx.dpi(sp.int(Prefs.XOFFSET, 0))
-        val limit = ((CameraLocator.screenWidth(ctx, wm) - rowW) / 2 - ctx.dpi(4)).coerceAtLeast(0)
+        val limit = ((screenW - rowW) / 2 - ctx.dpi(4)).coerceAtLeast(0)
         return raw.coerceIn(-limit, limit)
     }
 
@@ -542,7 +552,6 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         if (sp.str(Prefs.OUTLINE, "none") == "accent" && a != null) accentOf(a) else 0
 
     private fun applyAppearance() {
-        refreshWallpaper()
         val a = primary
         pillBg.setColor(bgColor())
         val stroke = strokeColor(a)
@@ -604,10 +613,12 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
             return
         }
 
-        // content views get their final size immediately; the pill clips them while it morphs
-        val ew = targetSize(Mode.EXPANDED, p, h)
-        expandedHost.layoutParams = FrameLayout.LayoutParams(ew.first, ew.second, Gravity.CENTER)
-        banner.layoutParams = FrameLayout.LayoutParams(targetSize(Mode.BANNER, p, h).first, th.takeIf { m == Mode.BANNER } ?: targetSize(Mode.BANNER, p, h).second, Gravity.CENTER)
+        // the content view for this mode gets its final size at once; the pill clips it while it morphs
+        when (m) {
+            Mode.EXPANDED -> expandedHost.layoutParams = FrameLayout.LayoutParams(tw, th, Gravity.CENTER)
+            Mode.BANNER -> banner.layoutParams = FrameLayout.LayoutParams(tw, th, Gravity.CENTER)
+            else -> {}
+        }
         showOnly(m, p, animateIn = prev != m || contentChanged, quick = fromDrop)
 
         // appearing: start as a round drop at the camera and spread out
@@ -688,7 +699,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
 
     /** Invisible extra slot width on each side; see the comment in [setMode]. */
     private fun spareFor(mainW: Int, other: IslandActivity, h: Int): Int {
-        val probe = CollapsedView(ctx).also { it.bind(other, accentOf(other), dots) }
+        probe.bindTrailing(other, accentOf(other), dots)
         val otherW = collapsedWidth(other, probe, h)
         return (max(mainW, otherW) - mainW) / 2 + ctx.dpi(12)
     }

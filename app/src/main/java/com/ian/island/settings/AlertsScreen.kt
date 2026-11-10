@@ -1,6 +1,5 @@
 package com.ian.island.settings
 
-import com.ian.island.alerts.Alerts
 import com.ian.island.alerts.AlertType
 import com.ian.island.alerts.SystemAlerts
 import com.ian.island.island.AnimStyle

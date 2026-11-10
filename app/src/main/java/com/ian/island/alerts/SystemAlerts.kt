@@ -52,7 +52,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
     private var torchCb: CameraManager.TorchCallback? = null
     private var cameraCb: CameraManager.AvailabilityCallback? = null
     private var recCb: AudioManager.AudioRecordingCallback? = null
-    private var screenRecCb: Any? = null
+    private var screenRecCb: java.util.function.Consumer<Int>? = null
     private val receivers = ArrayList<BroadcastReceiver>()
 
     private var camActive = false
@@ -83,7 +83,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         cameraCb?.let { try { camera.unregisterAvailabilityCallback(it) } catch (_: Exception) {} }
         recCb?.let { try { am.unregisterAudioRecordingCallback(it) } catch (_: Exception) {} }
         if (Build.VERSION.SDK_INT >= 35) {
-            (screenRecCb as? java.util.function.Consumer<Int>)?.let {
+            screenRecCb?.let {
                 try { ctx.getSystemService(WindowManager::class.java).removeScreenRecordingCallback(it) } catch (_: Exception) {}
             }
         }

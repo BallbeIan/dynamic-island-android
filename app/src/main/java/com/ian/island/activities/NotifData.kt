@@ -88,6 +88,7 @@ class NotifData(private val ctx: Context, val sbn: StatusBarNotification, val im
      * Samsung's Clock draws its timer / stopwatch with a Chronometer inside a custom RemoteViews instead of the
      * standard chronometer fields. Inflating that view with the clock's own resources gives us the real base time.
      */
+    @Suppress("DEPRECATION")   // Notification.contentView
     fun samsungChronometer(): ChronoInfo? {
         val rv = remoteViewExtra("android.ongoingActivityNoti.chronometerRemoteView")
             ?: remoteViewExtra("capsule_layout") ?: n.contentView ?: return null

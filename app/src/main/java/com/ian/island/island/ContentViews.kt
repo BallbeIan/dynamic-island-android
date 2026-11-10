@@ -79,6 +79,11 @@ class CollapsedView(ctx: Context) : LinearLayout(ctx) {
     fun bind(a: IslandActivity, accent: Int, indicatorDots: List<Int>) {
         lead.setImageDrawable(iconOf(a))
         lead.visibility = if (a.type == ActivityType.IDLE) INVISIBLE else VISIBLE
+        bindTrailing(a, accent, indicatorDots)
+    }
+
+    /** Only the right-hand side (no icon load): enough to measure how wide the pill needs to be. */
+    fun bindTrailing(a: IslandActivity, accent: Int, indicatorDots: List<Int>) {
         for (v in listOf<View>(wave, ring, timer, label, dot)) v.visibility = GONE
         timerSpec = null
         when (val t = a.trailing) {

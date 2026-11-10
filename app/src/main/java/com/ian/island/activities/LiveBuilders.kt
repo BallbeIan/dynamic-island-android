@@ -63,6 +63,7 @@ class LiveBuilders(private val ctx: Context) {
 
     // ---- Calls ----
 
+    @Suppress("DEPRECATION")   // TelecomManager.acceptRingingCall / endCall: still the only way without a button
     fun call(d: NotifData): IslandActivity {
         val incoming = d.callType == 1 || (d.callType == 0 && d.n.fullScreenIntent != null && !d.chronometer)
         val a = IslandActivity(id(d), ActivityType.CALL)

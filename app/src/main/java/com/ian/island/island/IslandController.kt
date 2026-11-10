@@ -2,7 +2,6 @@ package com.ian.island.island
 
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -10,7 +9,6 @@ import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.os.PowerManager
 import android.view.WindowManager
 import com.ian.island.IslandAccessibilityService
@@ -130,10 +128,6 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
     }
 
     // ================= Activities =================
-
-    private fun onMain(block: () -> Unit) {
-        if (Looper.myLooper() == Looper.getMainLooper()) block() else handler.post(block)
-    }
 
     fun post(a: IslandActivity, announce: Boolean = false) {
         if (!::app.isInitialized) return
@@ -264,14 +258,11 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
         val dots = inds.filter { it.id != p?.id && it.id != s?.id }.map { (it.trailing as? Trailing.Dot)?.color ?: it.accent }
 
         o.setSuppressed(!visibleNow())
-        if (primaryId != lastLoggedPrimary) { lastLoggedPrimary = primaryId; Log.d("Island", "primary=${p?.id} secondary=${s?.id} total=${acts.size}") }
         val announce = p != null && announceId == p.id
         if (announce) announceId = null
         o.render(p, s, dots, announce)
         scheduleBoundary()
     }
-
-    private var lastLoggedPrimary: String? = null
 
     private val recomputeRunnable = Runnable { recompute() }
 
@@ -283,33 +274,20 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
         return null
     }
 
-    /** True when the island is running through the accessibility overlay. */
-    val usingAccessibilityOverlay get() = a11y != null
-
     // ================= Visibility rules =================
 
-    private var lastReason: String? = null
-
-    /** Why the island is hidden right now, or null if it may show. Logged on change (tag "Island"). */
-    private fun hiddenReason(): String? {
-        if (!enabled) return "disabled"
-        if (!screenOn) return "screen off"
-        if (panelOpen) return "system panel open"
-        if (fullscreen && !prefs.getBoolean(Prefs.SHOW_IN_FULLSCREEN, false)) return "full screen app"
-        if (prefs.getBoolean(Prefs.SCHEDULE_ON, false) && !inSchedule()) return "outside schedule"
-        if (prefs.getBoolean(Prefs.HIDE_LOCK, false) &&
-            app.getSystemService(KeyguardManager::class.java).isKeyguardLocked) return "lock screen"
-        val fg = foregroundPkg
-        if (fg != null && prefs.getStringSet(Prefs.HIDE_APPS, emptySet())?.contains(fg) == true) return "hidden app $fg"
-        if (prefs.getBoolean(Prefs.HIDE_LANDSCAPE, false) &&
-            app.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) return "landscape"
-        return null
-    }
-
+    /** Whether the island may be shown right now (every hiding rule in one place). */
     private fun visibleNow(): Boolean {
-        val r = hiddenReason()
-        if (r != lastReason) { lastReason = r; Log.d("Island", "visibility: ${r ?: "visible"}") }
-        return r == null
+        if (!enabled || !screenOn || panelOpen) return false
+        if (fullscreen && !prefs.getBoolean(Prefs.SHOW_IN_FULLSCREEN, false)) return false
+        if (prefs.getBoolean(Prefs.SCHEDULE_ON, false) && !inSchedule()) return false
+        if (prefs.getBoolean(Prefs.HIDE_LOCK, false) &&
+            app.getSystemService(KeyguardManager::class.java).isKeyguardLocked) return false
+        val fg = foregroundPkg
+        if (fg != null && prefs.getStringSet(Prefs.HIDE_APPS, emptySet())?.contains(fg) == true) return false
+        if (prefs.getBoolean(Prefs.HIDE_LANDSCAPE, false) &&
+            app.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) return false
+        return true
     }
 
     private fun minutesNow(): Int {

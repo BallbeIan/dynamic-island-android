@@ -6,7 +6,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
-import android.view.View
 import android.widget.LinearLayout
 import com.ian.island.island.IconDrawable
 import com.ian.island.island.IslandController
