@@ -56,9 +56,8 @@ A small black pill around your front camera that shows what's happening on your 
 </table>
 
 <div align="center">
-<img src="docs/images/island-collapsed.png" alt="Two pills: a timer and a music pill" width="440">
-<img src="docs/images/island-expanded.png" alt="The expanded island showing a timer" width="440"><br>
-<sub>Two pills (a timer and music), and the expanded view. Content sits below the camera cut-out.</sub>
+<img src="docs/images/island-expanded.jpg" alt="The expanded music player: artwork, title, seek bar and transport controls" width="620"><br>
+<sub>Expanded music player: seek, skip and pause right from the island. Content sits below the camera cut-out.</sub>
 </div>
 
 ## Gestures
