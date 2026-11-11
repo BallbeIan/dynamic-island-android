@@ -57,6 +57,20 @@ class DebugReceiver : BroadcastReceiver() {
                 android.util.Log.d("IslandAudio", "mode=${a.mode} micMuted=${a.isMicrophoneMute} route=${cc.currentKind(ctx)} " +
                     "available=${cc.routes(ctx).map { it.kind.name }}")
             }
+            "com.ian.island.DEBUG_MEDIA" -> {
+                val bmp = android.graphics.Bitmap.createBitmap(240, 240, android.graphics.Bitmap.Config.ARGB_8888)
+                android.graphics.Canvas(bmp).drawPaint(android.graphics.Paint().apply {
+                    shader = android.graphics.LinearGradient(0f, 0f, 240f, 240f, Color.rgb(20, 40, 110), Color.rgb(200, 90, 150), android.graphics.Shader.TileMode.CLAMP)
+                })
+                val playing = i.getBooleanExtra("playing", true)
+                val info = com.ian.island.island.MediaInfo("x", "Music Sounds Better With You", "Stardust, Benjamin Diamond", bmp, playing,
+                    403_000, 79_000, android.os.SystemClock.elapsedRealtime(), 1f, true, true)
+                IslandController.post(IslandActivity("media", ActivityType.MEDIA).apply {
+                    kind = com.ian.island.island.Kind.MEDIA; media = info; title = info.title; subtitle = info.artist
+                    trailing = Trailing.Wave; accent = Color.rgb(130, 150, 255)
+                    icon = { android.graphics.drawable.BitmapDrawable(ctx.resources, bmp) }
+                })
+            }
             "com.ian.island.DEBUG_TAP" -> IslandController.toggleExpand()
             "com.ian.island.DEBUG_SWAP" -> IslandController.swapSecondary()
             "com.ian.island.DEBUG_CLEAR" -> { IslandController.remove("dbg:timer"); IslandController.remove("dbg:music") }

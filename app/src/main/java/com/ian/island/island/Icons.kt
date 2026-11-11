@@ -22,7 +22,8 @@ enum class Icon(val key: String, val label: String, val inPicker: Boolean = true
     FLASHLIGHT("flashlight", "Flashlight"), BOLT("bolt", "Lightning"), BATTERY("battery", "Battery"),
     CHECK("check", "Check mark"),
     // used by the settings UI only
-    GEAR("gear", "Gear", false), PALETTE("palette", "Palette", false), MUSIC("music", "Music note", false), TOUCH("touch", "Touch", false);
+    GEAR("gear", "Gear", false), PALETTE("palette", "Palette", false), MUSIC("music", "Music note", false), TOUCH("touch", "Touch", false),
+    PLAY("play", "Play", false), PAUSE("pause", "Pause", false), PREVIOUS("previous", "Previous", false), NEXT("next", "Next", false);
 
     companion object { fun from(key: String?, def: Icon) = values().firstOrNull { it.key == key } ?: def }
 }
@@ -47,6 +48,13 @@ class IconDrawable(private val icon: Icon, private val color: Int = Color.WHITE)
         while (i < xy.size) { path.lineTo(xy[i], xy[i + 1]); i += 2 }
         if (close) path.close()
         c.drawPath(path, p)
+    }
+
+    /** A filled triangle whose corners are softened by a round-joined stroke of the same colour. */
+    private fun rounded(c: Canvas, x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) {
+        path.reset(); path.moveTo(x1, y1); path.lineTo(x2, y2); path.lineTo(x3, y3); path.close()
+        c.drawPath(path, fill)
+        val w = stroke.strokeWidth; stroke.strokeWidth = 2.2f; c.drawPath(path, stroke); stroke.strokeWidth = w
     }
 
     override fun draw(c: Canvas) {
@@ -135,6 +143,19 @@ class IconDrawable(private val icon: Icon, private val color: Int = Color.WHITE)
             Icon.MUSIC -> {
                 r.set(5.5f, 15f, 12f, 20.5f); c.drawOval(r, fill)
                 c.drawLine(12f, 18f, 12f, 4.5f, stroke); poly(c, stroke, 12f, 4.5f, 18.5f, 7.5f)
+            }
+            Icon.PLAY -> rounded(c, 8.5f, 5.5f, 8.5f, 18.5f, 18.5f, 12f)
+            Icon.PAUSE -> {
+                r.set(7f, 5.5f, 10.5f, 18.5f); c.drawRoundRect(r, 1.4f, 1.4f, fill)
+                r.set(13.5f, 5.5f, 17f, 18.5f); c.drawRoundRect(r, 1.4f, 1.4f, fill)
+            }
+            Icon.PREVIOUS -> {
+                r.set(5.5f, 5.5f, 8.2f, 18.5f); c.drawRoundRect(r, 1.2f, 1.2f, fill)
+                rounded(c, 18.5f, 5.5f, 18.5f, 18.5f, 9.5f, 12f)
+            }
+            Icon.NEXT -> {
+                r.set(15.8f, 5.5f, 18.5f, 18.5f); c.drawRoundRect(r, 1.2f, 1.2f, fill)
+                rounded(c, 5.5f, 5.5f, 5.5f, 18.5f, 14.5f, 12f)
             }
             Icon.TOUCH -> {
                 c.drawCircle(12f, 12f, 2.6f, fill); c.drawCircle(12f, 12f, 6.8f, stroke)

@@ -199,6 +199,7 @@ class MediaExpandedView(ctx: Context) : LinearLayout(ctx) {
     private val next = ImageButton(ctx)
     private var info: MediaInfo? = null
     private var dragging = false
+    private var shownPlaying: Boolean? = null
 
     init {
         orientation = VERTICAL
@@ -246,26 +247,31 @@ class MediaExpandedView(ctx: Context) : LinearLayout(ctx) {
         addView(progressRow, LayoutParams(-1, -2).apply { topMargin = ctx.dpi(10) })
 
         val controls = LinearLayout(ctx).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER }
-        prev.setImageResource(android.R.drawable.ic_media_previous)
-        next.setImageResource(android.R.drawable.ic_media_next)
-        play.setImageResource(android.R.drawable.ic_media_play)
-        controls.addView(prev, control(prev, 46) { IslandController.mediaPrevious() })
-        controls.addView(play, control(play, 56) { IslandController.mediaPlayPause() })
-        controls.addView(next, control(next, 46) { IslandController.mediaNext() })
+        prev.setImageDrawable(IconDrawable(Icon.PREVIOUS, Color.WHITE))
+        next.setImageDrawable(IconDrawable(Icon.NEXT, Color.WHITE))
+        play.setImageDrawable(IconDrawable(Icon.PLAY, Color.BLACK))
+        controls.addView(prev, control(prev, 46, filled = false) { IslandController.mediaPrevious() })
+        controls.addView(play, control(play, 58, filled = true) { IslandController.mediaPlayPause() })
+        controls.addView(next, control(next, 46, filled = false) { IslandController.mediaNext() })
         addView(controls, LayoutParams(-1, -2).apply { topMargin = ctx.dpi(2) })
     }
 
     fun setTopInset(px: Int) = setPadding(context.dpi(18), context.dpi(16) + px, context.dpi(18), context.dpi(8))
 
-    private fun control(b: ImageButton, sizeDp: Int, onClick: () -> Unit): LayoutParams {
-        b.background = null
+    /** A round button in the same style as the other buttons: translucent, or a solid white disc for play / pause. */
+    private fun control(b: ImageButton, sizeDp: Int, filled: Boolean, onClick: () -> Unit): LayoutParams {
+        val disc = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(if (filled) Color.WHITE else Color.argb(46, 255, 255, 255))
+        }
+        b.background = android.graphics.drawable.RippleDrawable(
+            ColorStateList.valueOf(Color.argb(70, 128, 128, 128)), disc, android.graphics.drawable.ColorDrawable(Color.WHITE))
         b.scaleType = ImageView.ScaleType.FIT_CENTER
-        b.setColorFilter(Color.WHITE)
-        val pad = context.dpi(sizeDp / 5)
+        val pad = context.dpi((sizeDp * 0.27f).toInt())
         b.setPadding(pad, pad, pad, pad)
         b.setOnClickListener { onClick() }
         return LayoutParams(context.dpi(sizeDp), context.dpi(sizeDp)).apply {
-            marginStart = context.dpi(14); marginEnd = context.dpi(14)
+            marginStart = context.dpi(12); marginEnd = context.dpi(12)
         }
     }
 
@@ -279,7 +285,10 @@ class MediaExpandedView(ctx: Context) : LinearLayout(ctx) {
         if (title.text.toString() != m.title) title.text = m.title
         artist.text = m.artist
         artist.visibility = if (m.artist.isEmpty()) GONE else VISIBLE
-        play.setImageResource(if (m.playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
+        if (shownPlaying != m.playing) {
+            shownPlaying = m.playing
+            play.setImageDrawable(IconDrawable(if (m.playing) Icon.PAUSE else Icon.PLAY, Color.BLACK))
+        }
         val a2 = if (m.live) 1f else 0.35f
         prev.alpha = a2; next.alpha = a2
         prev.isEnabled = m.live; next.isEnabled = m.live
