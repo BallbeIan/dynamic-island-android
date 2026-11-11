@@ -75,7 +75,6 @@ class NotificationEngine(private val ctx: Context) {
         if (!prefs.getBoolean(Prefs.ENABLED, true)) return
         val n = sbn.notification ?: return
         if (sbn.packageName == ctx.packageName) return
-        if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
         val mode = appMode(sbn.packageName)
         if (mode == "off") return
 
@@ -85,6 +84,9 @@ class NotificationEngine(private val ctx: Context) {
             if (ranking.getRanking(sbn.key, r)) importance = r.importance
         }
         val d = NotifData(ctx, sbn, importance)
+        // A group summary only repeats its children, so it is skipped, except for calls: WhatsApp (and others) flag
+        // the incoming-call notification itself as a group summary.
+        if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0 && !d.isCall) return
         if (ScreenRecordTracker.posted(ctx, d)) return
         if (d.isMedia) return                                  // media sessions are handled by MediaProvider
 
