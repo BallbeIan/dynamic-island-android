@@ -19,7 +19,7 @@ object ActionRunner {
             GestureAction.NONE -> {}
             GestureAction.EXPAND -> IslandController.toggleExpand()
             GestureAction.DISMISS -> IslandController.dismissCurrent()
-            GestureAction.OPEN_APP -> primary?.onOpen?.invoke()
+            GestureAction.OPEN_APP -> primary?.let { IslandController.open(it) }
             GestureAction.PLAY_PAUSE -> if (primary?.media != null || IslandController.media != null) IslandController.mediaPlayPause()
             GestureAction.NEXT -> IslandController.mediaNext()
             GestureAction.PREVIOUS -> IslandController.mediaPrevious()

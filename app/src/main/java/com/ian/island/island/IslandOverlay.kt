@@ -466,7 +466,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         val p = primary ?: return
         when (mode) {
             Mode.COLLAPSED, Mode.BANNER ->
-                if (p.expandable) setMode(Mode.EXPANDED, false, byUser = true) else p.onOpen?.invoke()
+                if (p.expandable) setMode(Mode.EXPANDED, false, byUser = true) else IslandController.open(p)
             Mode.EXPANDED -> collapse()
             Mode.HIDDEN -> {}
         }
@@ -982,7 +982,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         collapsed.bind(p, accent, dots)
         banner.bind(p, accent)
         if (p.kind == Kind.MEDIA) mediaExp.bind(p, accent) else genericExp.bind(p, accent)
-        mediaExp.header.setOnClickListener { p.onOpen?.invoke() }
+        mediaExp.header.setOnClickListener { IslandController.open(p) }
         applyAppearance()
     }
 

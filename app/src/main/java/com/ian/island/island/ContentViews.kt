@@ -391,7 +391,7 @@ class GenericExpandedView(ctx: Context, private val requestFocus: () -> Unit, pr
         title.text = a.title
         sub.text = a.subtitle
         sub.visibility = if (a.subtitle.isEmpty()) GONE else VISIBLE
-        header.setOnClickListener { a.onOpen?.invoke() }
+        header.setOnClickListener { IslandController.open(a) }
         for (v in listOf<View>(timer, ring, label)) v.visibility = GONE
         timerSpec = null
         when (val t = a.trailing) {

@@ -203,6 +203,21 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
 
     fun toggleExpand() { overlay?.toggleExpand() }
 
+    /**
+     * Opens the activity's app from the island (header tap, long press, tapping a peek) and puts the pill away:
+     * a peek or alert is dismissed, an expanded or banner pill goes back to the small pill.
+     */
+    fun open(a: IslandActivity) {
+        a.onOpen?.invoke()
+        val o = overlay ?: return
+        when {
+            a.isTransient -> remove(a.id)
+            primaryId != a.id -> {}
+            o.mode == IslandOverlay.Mode.EXPANDED -> o.collapse()
+            o.mode == IslandOverlay.Mode.BANNER -> o.collapseBanner()
+        }
+    }
+
     /** Only a user-initiated expansion keeps a transient alive; auto-expanded alerts still time out. */
     fun onOverlayExpanded(id: String, expanded: Boolean, byUser: Boolean) {
         expandedId = if (expanded && byUser) id else if (expandedId == id) null else expandedId
