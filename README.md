@@ -1,6 +1,6 @@
 <div align="center">
 
-# Orbit
+# Orbit: Camera Island
 
 **A dynamic island for Android.**
 A small black pill around your front camera that shows what's happening on your phone: music, calls, timers, navigation, charging, system alerts and notifications. Tap it to expand, swipe it, and make it yours.
