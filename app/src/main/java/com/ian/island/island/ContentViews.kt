@@ -114,7 +114,7 @@ class CollapsedView(ctx: Context) : LinearLayout(ctx) {
 }
 
 /** Banner: [icon] title / subtitle, plus an inline slider for volume. */
-class BannerView(ctx: Context, private val requestFocus: () -> Unit) : LinearLayout(ctx) {
+class BannerView(ctx: Context) : LinearLayout(ctx) {
     val icon = ImageView(ctx)
     private val title = TextView(ctx)
     private val sub = TextView(ctx)
@@ -309,7 +309,7 @@ class MediaExpandedView(ctx: Context) : LinearLayout(ctx) {
 }
 
 /** Expanded view for everything else: header, optional progress, action buttons, inline reply. */
-class GenericExpandedView(ctx: Context, private val requestFocus: () -> Unit, private val releaseFocus: () -> Unit) : LinearLayout(ctx) {
+class GenericExpandedView(ctx: Context, private val onWantKeyboard: () -> Unit, private val onDoneTyping: () -> Unit) : LinearLayout(ctx) {
     val header = LinearLayout(ctx)
     private val icon = ImageView(ctx)
     private val title = TextView(ctx)
@@ -369,7 +369,7 @@ class GenericExpandedView(ctx: Context, private val requestFocus: () -> Unit, pr
         replyField.background = GradientDrawable().apply { cornerRadius = ctx.dp(20f); setColor(Color.argb(40, 255, 255, 255)) }
         // Overlay windows are not focusable by default; ask for focus the moment the field is touched.
         replyField.setOnTouchListener { v, e ->
-            if (e.action == MotionEvent.ACTION_DOWN) { requestFocus(); v.requestFocus() }
+            if (e.action == MotionEvent.ACTION_DOWN) onWantKeyboard()
             false
         }
         replyField.setOnEditorActionListener { _, id, _ -> if (id == EditorInfo.IME_ACTION_SEND) { sendReply(); true } else false }
@@ -392,7 +392,7 @@ class GenericExpandedView(ctx: Context, private val requestFocus: () -> Unit, pr
         replyField.setText("")
         (context.getSystemService(android.view.inputmethod.InputMethodManager::class.java))
             ?.hideSoftInputFromWindow(replyField.windowToken, 0)
-        releaseFocus()
+        onDoneTyping()
     }
 
     fun bind(a: IslandActivity, accent: Int) {
@@ -454,5 +454,12 @@ class GenericExpandedView(ctx: Context, private val requestFocus: () -> Unit, pr
 
     val hasTimer get() = timerSpec != null
     fun tick() { timerSpec?.let { timer.text = timerText(it) } }
-    fun clearReply() { replyField.setText(""); }
+    fun clearReply() { replyField.setText("") }
+
+    /** Called once the island window has become focusable: focus the field and bring up the keyboard. */
+    fun focusReply() {
+        replyField.requestFocus()
+        context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+            ?.showSoftInput(replyField, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+    }
 }

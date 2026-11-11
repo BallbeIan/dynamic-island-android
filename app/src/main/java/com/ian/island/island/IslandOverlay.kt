@@ -119,10 +119,10 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     private val collapsed = CollapsedView(ctx)
     /** Off-screen twin used only to measure how wide another activity's collapsed pill would be. */
     private val probe = CollapsedView(ctx)
-    private val banner = BannerView(ctx) { setFocusable(true) }
+    private val banner = BannerView(ctx)
     private val expandedHost = FrameLayout(ctx)
     private val mediaExp = MediaExpandedView(ctx)
-    private val genericExp = GenericExpandedView(ctx, { setFocusable(true) }, { setFocusable(false) })
+    private val genericExp = GenericExpandedView(ctx, { enableKeyboard() }, { setFocusable(false) })
 
     private val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -943,6 +943,16 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     private fun applyTouchable() {
         applyTouchableFlag()
         if (attached) try { wm.updateViewLayout(root, params) } catch (_: Exception) {}
+    }
+
+    /**
+     * The reply field needs a focusable window to show the keyboard. The window only takes focus a moment after
+     * the flag changes, so the field is focused (and the keyboard requested) shortly afterwards, and once more in
+     * case the first request came too early.
+     */
+    private fun enableKeyboard() {
+        setFocusable(true)
+        for (delay in longArrayOf(150, 450)) handler.postDelayed({ if (mode == Mode.EXPANDED) genericExp.focusReply() }, delay)
     }
 
     /** The reply field needs a focusable window to show the keyboard. */

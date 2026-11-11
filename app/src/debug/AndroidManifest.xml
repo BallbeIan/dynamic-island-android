@@ -13,6 +13,7 @@
                 <action android:name="com.ian.island.DEBUG_PREF" />
                 <action android:name="com.ian.island.DEBUG_AUDIO" />
                 <action android:name="com.ian.island.DEBUG_MEDIA" />
+                <action android:name="com.ian.island.DEBUG_REPLY" />
             </intent-filter>
         </receiver>
     </application>

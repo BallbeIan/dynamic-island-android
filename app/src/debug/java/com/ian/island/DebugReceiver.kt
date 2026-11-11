@@ -71,6 +71,13 @@ class DebugReceiver : BroadcastReceiver() {
                     icon = { android.graphics.drawable.BitmapDrawable(ctx.resources, bmp) }
                 })
             }
+            "com.ian.island.DEBUG_REPLY" -> {
+                IslandController.post(IslandActivity("dbg:reply", ActivityType.LIVE).apply {
+                    title = "Alice"; subtitle = "Are we still on for lunch today?"; accent = Color.rgb(48, 209, 88)
+                    icon = { IconDrawable(Icon.BELL, Color.rgb(48, 209, 88)) }
+                    reply = com.ian.island.island.ReplyAction("Reply") { text -> android.util.Log.d("IslandReply", "sent: $text") }
+                })
+            }
             "com.ian.island.DEBUG_TAP" -> IslandController.toggleExpand()
             "com.ian.island.DEBUG_SWAP" -> IslandController.swapSecondary()
             "com.ian.island.DEBUG_CLEAR" -> { IslandController.remove("dbg:timer"); IslandController.remove("dbg:music") }
