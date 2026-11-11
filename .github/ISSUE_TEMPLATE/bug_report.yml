@@ -1,10 +1,10 @@
 name: Bug or device report
-description: Something does not work, or you tried Island on a new phone
+description: Something does not work, or you tried Orbit on a new phone
 body:
   - type: markdown
     attributes:
       value: |
-        Island has only been tested on one Samsung foldable so far. Reports from other phones are very valuable, **even if everything works**.
+        Orbit has only been tested on one Samsung foldable so far. Reports from other phones are very valuable, **even if everything works**.
   - type: input
     id: device
     attributes:

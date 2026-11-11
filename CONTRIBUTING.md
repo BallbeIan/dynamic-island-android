@@ -1,10 +1,10 @@
 # Contributing
 
-Thanks for your interest in Island! Bug reports, device reports and pull requests are welcome.
+Thanks for your interest in Orbit! Bug reports, device reports and pull requests are welcome.
 
 ## Device reports are the most useful thing right now
 
-Island has been developed and tested on one Samsung foldable. How it behaves on other phones (Pixel, Xiaomi, OnePlus, Motorola, ...) is the biggest unknown. If you build it and try it, please open a **Bug report** issue even when everything works, and include:
+Orbit has been developed and tested on one Samsung foldable. How it behaves on other phones (Pixel, Xiaomi, OnePlus, Motorola, ...) is the biggest unknown. If you build it and try it, please open a **Bug report** issue even when everything works, and include:
 
 - phone model and Android version
 - whether the island lines up with your camera (and the screen, if it is a foldable)
@@ -23,7 +23,7 @@ See [Building from source](README.md#building-from-source). Run `./gradlew lint 
 
 ## Licensing of contributions
 
-The project is under the [PolyForm Noncommercial License 1.0.0](LICENSE), and the maintainer plans a paid release on Google Play. **By submitting a contribution you confirm that you wrote it (or have the right to submit it) and you grant the maintainer the right to use, modify and distribute it as part of Island, including in commercial distributions of the app.** If you are not comfortable with that, please open an issue to discuss your idea instead of a pull request.
+The project is under the [PolyForm Noncommercial License 1.0.0](LICENSE), and the maintainer plans a paid release on Google Play. **By submitting a contribution you confirm that you wrote it (or have the right to submit it) and you grant the maintainer the right to use, modify and distribute it as part of Orbit, including in commercial distributions of the app.** If you are not comfortable with that, please open an issue to discuss your idea instead of a pull request.
 
 ## Reporting security problems
 

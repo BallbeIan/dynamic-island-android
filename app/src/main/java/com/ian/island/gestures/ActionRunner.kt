@@ -43,7 +43,7 @@ object ActionRunner {
     }
 
     private fun global(ctx: Context, svc: AccessibilityService?, action: Int) {
-        if (svc == null) { toast(ctx, "Enable the Island accessibility service for this gesture"); return }
+        if (svc == null) { toast(ctx, "Enable the Orbit accessibility service for this gesture"); return }
         // TAKE_SCREENSHOT/LOCK_SCREEN need API 28; older devices just ignore the unknown id.
         svc.performGlobalAction(action)
     }
@@ -54,7 +54,7 @@ object ActionRunner {
             val sbm = ctx.getSystemService("statusbar")
             Class.forName("android.app.StatusBarManager").getMethod(method).invoke(sbm)
         } catch (_: Throwable) {
-            toast(ctx, "Enable the Island accessibility service to open the shade")
+            toast(ctx, "Enable the Orbit accessibility service to open the shade")
         }
     }
 

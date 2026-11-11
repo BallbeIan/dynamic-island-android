@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Island</string>
-    <string name="a11y_description">Lets Island draw over the status bar, run gestures such as home, recents and screenshot, hide itself in the apps you choose, and hide while the notification panel is open (it looks at which windows are on screen, never at their content). Island never reads what is on your screen.</string>
+    <string name="app_name">Orbit</string>
+    <string name="a11y_description">Lets Orbit draw over the status bar, run gestures such as home, recents and screenshot, hide itself in the apps you choose, and hide while the notification panel is open (it looks at which windows are on screen, never at their content). Orbit never reads what is on your screen.</string>
 </resources>

@@ -27,7 +27,7 @@ class MainActivity : Activity() {
         val hero = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(ui.dpi(6), ui.dpi(20), ui.dpi(6), ui.dpi(4))
-            addView(Ui.text(this@MainActivity, 36f, Ui.TEXT, medium = true).apply { text = "Island" })
+            addView(Ui.text(this@MainActivity, 36f, Ui.TEXT, medium = true).apply { text = "Orbit" })
             addView(Ui.text(this@MainActivity, 15f, Ui.TEXT2).apply {
                 text = "A dynamic island for your Android"; setPadding(0, ui.dpi(2), 0, 0)
             })
@@ -38,8 +38,8 @@ class MainActivity : Activity() {
         checklist = SetupChecklist(ui)
         checklist.build()
 
-        ui.section("Island")
-        ui.toggle("Island enabled", Prefs.ENABLED, true, "Show the island on screen")
+        ui.section("Orbit")
+        ui.toggle("Orbit enabled", Prefs.ENABLED, true, "Show the island on screen")
 
         ui.section("Customise")
         for (s in SectionActivity.Section.values()) {
@@ -50,7 +50,7 @@ class MainActivity : Activity() {
 
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "" }
         ui.raw(Ui.text(this, 12f, Ui.TEXT2).apply {
-            text = "Island $version"
+            text = "Orbit $version"
             gravity = android.view.Gravity.CENTER
             setPadding(0, ui.dpi(8), 0, 0)
         }, 20)

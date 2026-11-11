@@ -21,7 +21,7 @@ object EverydayScreen {
         }
 
         ui.section("Quick Settings tile")
-        ui.note("Add the \"Island\" tile from the Quick Settings editor: tap it to switch the island on/off, long-press it to open these settings.")
+        ui.note("Add the \"Orbit\" tile from the Quick Settings editor: tap it to switch the island on/off, long-press it to open these settings.")
 
         ui.section("Always-on display")
         ui.note("Android doesn't let apps draw windows while the screen is in always-on / doze mode, so the island can't appear on the AOD. It does show on the lock screen (unless hidden above) when the accessibility service is on.")

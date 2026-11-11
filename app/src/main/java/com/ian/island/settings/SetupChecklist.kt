@@ -76,7 +76,7 @@ class SetupChecklist(private val ui: UiKit) {
         items += Item("Display over other apps", "Only needed if the accessibility service is off.", false,
             { Settings.canDrawOverlays(act) },
             { act.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${act.packageName}"))) })
-        items += Item("Unrestricted battery", "Stops Android from killing Island in the background.", false,
+        items += Item("Unrestricted battery", "Stops Android from killing Orbit in the background.", false,
             { act.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(act.packageName) },
             {
                 try {
@@ -88,7 +88,7 @@ class SetupChecklist(private val ui: UiKit) {
         items += Item("Bluetooth", "Show which Bluetooth device connected.", false,
             { has(Manifest.permission.BLUETOOTH_CONNECT) }, runtime(Manifest.permission.BLUETOOTH_CONNECT),
             show = { Build.VERSION.SDK_INT >= 31 })
-        items += Item("Location", "Android only reveals the Wi-Fi name with it. Island never reads your location.", false,
+        items += Item("Location", "Android only reveals the Wi-Fi name with it. Orbit never reads your location.", false,
             { has(Manifest.permission.ACCESS_FINE_LOCATION) },
             runtime(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         items += Item("Phone", "Answer or hang up through Android if a call notification has no button.", false,
@@ -190,7 +190,7 @@ class SetupChecklist(private val ui: UiKit) {
         val (title, color, summary) = when {
             !requiredOk -> Triple("Setup needed", Ui.BAD, "Grant notification access to start")
             !overlayOk -> Triple("Almost there", Ui.WARN, "Enable the accessibility service so the island can appear")
-            else -> Triple("All set", Ui.OK, "Island is ready — play something")
+            else -> Triple("All set", Ui.OK, "Orbit is ready — play something")
         }
         headerTitle.text = title
         headerSummary.text = summary
