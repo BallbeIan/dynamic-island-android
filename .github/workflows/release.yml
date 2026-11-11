@@ -1,0 +1,118 @@
+name: Release
+
+# Publishes a signed APK to GitHub Releases when a version tag is pushed:
+#   git tag v1.1 && git push origin v1.1
+# The tag must match versionName in app/build.gradle.kts (v1.1 <-> "1.1").
+# Needs four repository secrets (see docs/play-store/RELEASING.md): KEYSTORE_BASE64,
+# KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the app version
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match versionName \"$version\" in app/build.gradle.kts"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check the signing secrets are set
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Repository secret $name is not set, so the APK cannot be signed. See docs/play-store/RELEASING.md."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Write the signing config
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/orbit-upload.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/orbit-upload.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Lint and build the release APK
+        run: ./gradlew --no-daemon lint assembleRelease
+
+      - name: Verify the APK is signed with the release key
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          certs=$("$apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk)
+          echo "$certs" | grep -E "Verifies|Signer #1 certificate DN"
+          if echo "$certs" | grep -qi "Android Debug"; then
+            echo "::error::The APK is signed with the debug key, refusing to publish it."
+            exit 1
+          fi
+
+      - name: Name the APK and write its checksum
+        run: |
+          mkdir dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/Orbit-$VERSION.apk"
+          (cd dist && sha256sum "Orbit-$VERSION.apk" > "Orbit-$VERSION.apk.sha256")
+          cat "dist/Orbit-$VERSION.apk.sha256"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(cut -d' ' -f1 "dist/Orbit-$VERSION.apk.sha256")
+          cat > notes.md <<NOTES
+          ## Install
+
+          1. Download **\`Orbit-$VERSION.apk\`** below on your Android phone (Android 8.0 or newer) and open it.
+          2. Open Orbit and use the Setup card: grant **Notification access** (required) and the **Accessibility service** (recommended).
+          3. On Android 13+, if those switches are greyed out: App info → ⋮ menu → **Allow restricted settings**, then try again.
+
+          Full steps are in the [README](https://github.com/${GITHUB_REPOSITORY}#installing). This APK is signed with Orbit's own key: if a Google Play version is available, uninstall this one before installing it.
+
+          SHA-256 of \`Orbit-$VERSION.apk\`:
+
+          \`\`\`
+          $sha
+          \`\`\`
+          NOTES
+          flags=""
+          case "$VERSION" in *-*) flags="--prerelease" ;; esac
+          gh release create "$TAG" $flags --verify-tag --title "Orbit $VERSION" \
+            --notes-file notes.md --generate-notes \
+            "dist/Orbit-$VERSION.apk" "dist/Orbit-$VERSION.apk.sha256"
