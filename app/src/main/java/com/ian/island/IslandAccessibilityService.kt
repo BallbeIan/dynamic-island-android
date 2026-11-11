@@ -17,7 +17,8 @@ import com.ian.island.settings.Prefs
 /**
  * Hosts the overlay as TYPE_ACCESSIBILITY_OVERLAY (draws over the status bar / cutout / lock screen),
  * performs global gestures (home, recents, screenshot...), and reports the foreground app.
- * It never reads screen content (canRetrieveWindowContent = false).
+ * It only looks at which windows exist (type, bounds, owning app), never at the content of other apps' windows.
+ * (canRetrieveWindowContent is declared because Android requires it to list windows at all.)
  */
 class IslandAccessibilityService : AccessibilityService() {
 

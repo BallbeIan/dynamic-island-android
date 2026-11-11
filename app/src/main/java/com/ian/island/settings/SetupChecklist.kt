@@ -2,6 +2,7 @@ package com.ian.island.settings
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -62,6 +63,14 @@ class SetupChecklist(private val ui: UiKit) {
     private var expanded = true
     private var userToggled = false
 
+    /** Prominent disclosure (a Google Play requirement for sensitive access): the user must agree before we open the system screen. */
+    private fun disclose(title: String, message: String, proceed: () -> Unit) {
+        AlertDialog.Builder(act).setTitle(title).setMessage(message)
+            .setPositiveButton("Agree and continue") { _, _ -> proceed() }
+            .setNegativeButton("Not now", null)
+            .show()
+    }
+
     private fun runtime(vararg perms: String) = { act.requestPermissions(perms, REQ_RUNTIME) }
     private fun has(p: String) = act.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
     private fun dot(color: Int, sizeDp: Int = 10) = View(act).apply {
@@ -71,21 +80,36 @@ class SetupChecklist(private val ui: UiKit) {
 
     fun build() {
         items += Item("Notification access", "Media controls, notifications, calls, timers.", true,
-            { listenerEnabled(act) }, { act.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) })
+            { listenerEnabled(act) },
+            {
+                disclose("Notification access",
+                    "Orbit reads your notifications and media sessions so it can show them on the island: messages, calls, " +
+                        "timers, navigation and the music that is playing. It also lets you press their buttons and reply from the island.\n\n" +
+                        "Everything stays on your device. Orbit has no internet access and never stores or sends your notifications.") {
+                    act.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                }
+            })
         items += Item("Accessibility service", "Draws over the status bar, runs gestures, hides in apps and while the notification panel is open.", false,
-            { accessibilityEnabled(act) }, { act.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
+            { accessibilityEnabled(act) },
+            {
+                disclose("Accessibility service",
+                    "Orbit uses Android's Accessibility API to:\n" +
+                        "• draw the island over the status bar and lock screen\n" +
+                        "• run the gestures you choose: home, recents, back, screenshot, lock screen, open the notification shade\n" +
+                        "• notice which app is in front, whether it is full screen, and whether the notification shade is open, so the island can hide\n" +
+                        "• if you turn it on, handle the volume keys for the island's volume slider\n\n" +
+                        "Orbit only looks at which windows are on screen (their type, size and app name), never at what is inside them. " +
+                        "It does not read, record or send your screen, what you type or your passwords. Nothing leaves your device.") {
+                    act.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                }
+            })
         items += Item("Display over other apps", "Only needed if the accessibility service is off.", false,
             { Settings.canDrawOverlays(act) },
             { act.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${act.packageName}"))) })
         items += Item("Unrestricted battery", "Stops Android from killing Orbit in the background.", false,
             { act.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(act.packageName) },
-            {
-                try {
-                    act.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${act.packageName}")))
-                } catch (_: Exception) {
-                    act.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                }
-            })
+            // the list of apps (Orbit -> Unrestricted): the one-tap request needs a permission Google Play restricts
+            { act.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) })
         items += Item("Bluetooth", "Show which Bluetooth device connected.", false,
             { has(Manifest.permission.BLUETOOTH_CONNECT) }, runtime(Manifest.permission.BLUETOOTH_CONNECT),
             show = { Build.VERSION.SDK_INT >= 31 })

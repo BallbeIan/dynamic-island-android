@@ -5,6 +5,11 @@ local.properties
 *.iml
 .kotlin/
 
+# release signing: never commit keys or their passwords
+keystore.properties
+*.jks
+*.keystore
+
 # private working notes, never published
 CLAUDE_CODE_PROMPT.md
 island-progress.md

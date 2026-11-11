@@ -29,7 +29,7 @@ class MainActivity : Activity() {
             setPadding(ui.dpi(6), ui.dpi(20), ui.dpi(6), ui.dpi(4))
             addView(Ui.text(this@MainActivity, 36f, Ui.TEXT, medium = true).apply { text = "Orbit" })
             addView(Ui.text(this@MainActivity, 15f, Ui.TEXT2).apply {
-                text = "A dynamic island for your Android"; setPadding(0, ui.dpi(2), 0, 0)
+                text = "A camera island for your Android"; setPadding(0, ui.dpi(2), 0, 0)
             })
         }
         ui.raw(hero, 0)
