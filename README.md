@@ -2,7 +2,7 @@
 
 # Orbit: Camera Island
 
-**A dynamic island for Android.**
+**A camera island for Android.**
 A small black pill around your front camera that shows what's happening on your phone: music, calls, timers, navigation, charging, system alerts and notifications. Tap it to expand, swipe it, and make it yours.
 
 ![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
@@ -119,8 +119,8 @@ On Android 13 and newer, an app installed outside the Play Store needs **"Allow 
 You need JDK 17 and the Android SDK (platform 35, build-tools 35.0.0).
 
 ```bash
-git clone https://github.com/BallbeIan/dynamic-island-android.git
-cd dynamic-island-android
+git clone https://github.com/BallbeIan/orbit-camera-island.git
+cd orbit-camera-island
 export ANDROID_HOME=~/Android/Sdk
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew lint
