@@ -128,14 +128,6 @@ export ANDROID_HOME=~/Android/Sdk
 
 Or open the folder in Android Studio and run it on a device.
 
-## Roadmap
-
-- [ ] Google Play release
-- [ ] Verify and harden behaviour on Pixel and other manufacturers' phones
-- [ ] More languages (a few detection heuristics currently assume English button labels)
-- [ ] Automated tests for notification classification
-- [ ] Finished-timer and ringing-alarm presentation for more Clock apps
-
 ## Contributing
 
 Bug reports and device reports are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
