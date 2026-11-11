@@ -10,7 +10,9 @@ A small black pill around your front camera that shows what's happening on your 
 ![No internet permission](https://img.shields.io/badge/internet-never%20requested-success)
 ![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)
 
-> **Not available for download yet.** A Google Play release is planned. Until then you can read the code and build it yourself (see [Building](#building-from-source)).
+[![Download the latest APK](https://img.shields.io/github/v/release/BallbeIan/orbit-camera-island?label=download%20APK&logo=android&logoColor=white&color=3DDC84)](https://github.com/BallbeIan/orbit-camera-island/releases/latest)
+
+**[Download the latest APK](https://github.com/BallbeIan/orbit-camera-island/releases/latest)** and follow [Installing](#installing). A Google Play release is planned.
 
 <img src="docs/images/island-hero.jpg" alt="Orbit on a foldable phone: a music pill with album art and equaliser bars, a timer pill with a small music pill beside it, and a notification peek" width="760">
 
@@ -69,9 +71,18 @@ Tap, double tap, long press and swipes in four directions can each be assigned a
 
 Show the island only when something is happening (or always), set active hours, hide it on the lock screen, hide it in chosen apps, **hide it automatically in full-screen apps** (video, games), hide it while the notification panel or Quick Settings is open, and add a Quick Settings tile to switch it on and off.
 
+## Installing
+
+1. On your phone, open the [latest release](https://github.com/BallbeIan/orbit-camera-island/releases/latest) and download `Orbit-<version>.apk`. Open it and allow your browser or file manager to install apps when Android asks.
+2. Open **Orbit**. The Setup card on the home screen lists what it needs; tap **Grant** on **Notification access** (required) and **Accessibility service** (recommended), and agree to the explanation shown for each.
+3. On Android 13 and newer, those two switches may be greyed out for an app installed outside the Play Store. Open **App info → ⋮ menu → Allow restricted settings**, then try again.
+4. Play some music, start a timer, or toggle Do Not Disturb: the island appears around your front camera.
+
+To check the download, compare its SHA-256 with the `.sha256` file on the release page. Updates install over the top of an existing install, and keep your settings.
+
 ## Requirements and compatibility
 
-- Android **8.0 (API 26) or newer**. Built against API 35.
+- Android **8.0 (API 26) or newer**. Built against API 36.
 - Developed and tested on a **Samsung foldable (SM-F971B)**, both its inner and cover screens, and lightly on an Android 14 emulator.
 - Detecting a hidden camera and some of the hiding behaviour depend on how a phone's system UI reports itself. Behaviour on **Pixel and other phones has not been verified yet**. If you try it on one, please [open an issue](../../issues/new/choose) and say what worked.
 
@@ -82,7 +93,7 @@ Show the island only when something is happening (or always), set active hours, 
 | Notification access | Reads media sessions, notifications, calls, timers and progress so they can be shown. Processed on the device only. |
 | Accessibility service | Draws the island above the status bar, performs gestures such as home and screenshot, knows which app is in front, and lists the on-screen windows to detect the notification panel and full-screen apps. It declares the window-content capability only because Android requires it to list windows. It never reads what is on your screen. |
 | Display over other apps | Fallback overlay when the accessibility service is off. |
-| Battery optimisation exemption | Keeps Android from stopping the island in the background. |
+| Unrestricted battery *(optional)* | The Setup card opens Android's battery list so you can stop it closing the island in the background. Orbit declares no permission for this. |
 | Bluetooth, Location, Phone *(optional)* | Bluetooth device names, the Wi-Fi network name (Android requires location for it, and Orbit never reads your location), and answering or ending calls through Android as a fallback. |
 
 There is **no internet permission**. See the full list in [`AndroidManifest.xml`](app/src/main/AndroidManifest.xml).
