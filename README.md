@@ -12,7 +12,7 @@ A small black pill around your front camera that shows what's happening on your 
 
 > **Not available for download yet.** A Google Play release is planned. Until then you can read the code and build it yourself (see [Building](#building-from-source)).
 
-<img src="docs/images/island-hero.jpg" alt="Orbit running on a foldable phone: a music pill with album art and equaliser bars, and a navigation pill beside it" width="760">
+<img src="docs/images/island-hero.jpg" alt="Orbit on a foldable phone: a music pill with album art and equaliser bars, a timer pill with a small music pill beside it, and a notification peek" width="760">
 
 </div>
 
@@ -56,8 +56,9 @@ A small black pill around your front camera that shows what's happening on your 
 </table>
 
 <div align="center">
-<img src="docs/images/island-expanded.jpg" alt="The expanded music player: artwork, title, seek bar and transport controls" width="620"><br>
-<sub>Expanded music player: seek, skip and pause right from the island. Content sits below the camera cut-out.</sub>
+<img src="docs/images/island-expanded.jpg" alt="The expanded music player: artwork, title, seek bar and transport controls" width="380">
+<img src="docs/images/island-reply.jpg" alt="An expanded message with an inline reply field" width="380"><br>
+<sub>Expanded music player (seek, skip and pause) and an inline reply, right from the island. Content sits below the camera cut-out.</sub>
 </div>
 
 ## Gestures
@@ -116,7 +117,7 @@ On Android 13 and newer, an app installed outside the Play Store needs **"Allow 
 
 ## Building from source
 
-You need JDK 17 and the Android SDK (platform 35, build-tools 35.0.0).
+You need JDK 17 and the Android SDK (platform 36, build-tools 36.0.0).
 
 ```bash
 git clone https://github.com/BallbeIan/orbit-camera-island.git
@@ -138,4 +139,4 @@ Orbit is **source-available** under the [PolyForm Noncommercial License 1.0.0](L
 
 ## Disclaimer
 
-Orbit is an independent project. It is not affiliated with, endorsed by, or sponsored by Apple Inc. "Dynamic Orbit" is a trademark of Apple Inc.
+Orbit is an independent project. It is not affiliated with, endorsed by, or sponsored by Apple Inc. "Dynamic Island" is a trademark of Apple Inc.
