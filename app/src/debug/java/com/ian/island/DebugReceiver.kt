@@ -46,6 +46,15 @@ class DebugReceiver : BroadcastReceiver() {
             }
             "com.ian.island.DEBUG_PREF" ->
                 com.ian.island.settings.Prefs.get(ctx).edit().putString(i.getStringExtra("key"), i.getStringExtra("value")).apply()
+            "com.ian.island.DEBUG_AUDIO" -> {
+                val a = ctx.getSystemService(android.media.AudioManager::class.java)
+                when (i.getStringExtra("do")) {
+                    "speaker" -> com.ian.island.activities.CallControls.toggleSpeaker(ctx)
+                    "mute" -> com.ian.island.activities.CallControls.toggleMute(ctx)
+                }
+                android.util.Log.d("IslandAudio", "mode=${a.mode} micMuted=${a.isMicrophoneMute} speakerOn=${com.ian.island.activities.CallControls.speakerOn(ctx)} " +
+                    "commDevice=${if (android.os.Build.VERSION.SDK_INT >= 31) a.communicationDevice?.type else null}")
+            }
             "com.ian.island.DEBUG_TAP" -> IslandController.toggleExpand()
             "com.ian.island.DEBUG_SWAP" -> IslandController.swapSecondary()
             "com.ian.island.DEBUG_CLEAR" -> { IslandController.remove("dbg:timer"); IslandController.remove("dbg:music") }

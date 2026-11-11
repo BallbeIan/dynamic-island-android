@@ -11,6 +11,7 @@
                 <action android:name="com.ian.island.DEBUG_CLOCK_CANCEL" />
                 <action android:name="com.ian.island.DEBUG_WINDOWS" />
                 <action android:name="com.ian.island.DEBUG_PREF" />
+                <action android:name="com.ian.island.DEBUG_AUDIO" />
             </intent-filter>
         </receiver>
     </application>

@@ -12,6 +12,7 @@ import com.ian.island.island.ActivityType
 import com.ian.island.island.AnimStyle
 import com.ian.island.island.GREEN
 import com.ian.island.island.Intents
+import com.ian.island.island.IslandController
 import com.ian.island.island.IslandActivity
 import com.ian.island.island.Presentation
 import com.ian.island.island.RED
@@ -22,6 +23,7 @@ import com.ian.island.island.Trailing
 class LiveBuilders(private val ctx: Context) {
 
     private val BLUE = Color.rgb(10, 132, 255)
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val ORANGE = Color.rgb(255, 159, 10)
     private val YELLOW = Color.rgb(255, 214, 10)
 
@@ -90,6 +92,29 @@ class LiveBuilders(private val ctx: Context) {
             a.trailing = if (d.isTimer) Trailing.Timer(d.whenMs, false) else Trailing.Dot(GREEN)
             if (btns.none { it.color == RED } && canTelecom && android.os.Build.VERSION.SDK_INT >= 28)
                 btns = btns + ActionButton("Hang up", RED) { try { telecom.endCall() } catch (_: Exception) {} }
+            // The call notification normally only offers Hang up, so add Mute and Speaker (unless it has its own).
+            fun has(word: String) = btns.any { it.label.toString().contains(word, ignoreCase = true) }
+            val refresh = { IslandController.post(call(d)) }
+            val controls = ArrayList<ActionButton>()
+            if (!has("mute")) {
+                val on = CallControls.muted(ctx)
+                controls += ActionButton(if (on) "Unmute" else "Mute", if (on) BLUE else 0) { CallControls.toggleMute(ctx); refresh() }
+            }
+            if (!has("speaker")) {
+                controls += ActionButton("Speaker", if (CallControls.speakerOn(ctx)) BLUE else 0) {
+                    val before = CallControls.speakerOn(ctx)
+                    CallControls.toggleSpeaker(ctx)
+                    handler.postDelayed({
+                        if (CallControls.speakerOn(ctx) != before) refresh()
+                        else {
+                            // Android only lets the phone app change a call's audio route, so say so and open it
+                            android.widget.Toast.makeText(ctx, "This phone only lets the call screen switch the speaker", android.widget.Toast.LENGTH_LONG).show()
+                            IslandController.open(a)
+                        }
+                    }, 400)     // the audio route takes a moment to change
+                }
+            }
+            btns = controls + btns
         }
         a.buttons = btns
         return a
