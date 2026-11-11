@@ -100,24 +100,41 @@ class LiveBuilders(private val ctx: Context) {
                 val on = CallControls.muted(ctx)
                 controls += ActionButton(if (on) "Unmute" else "Mute", if (on) BLUE else 0) { CallControls.toggleMute(ctx); refresh() }
             }
+            // Audio output: a menu of the outputs the phone has (earpiece, speaker, headphones, Bluetooth).
             if (!has("speaker")) {
-                controls += ActionButton("Speaker", if (CallControls.speakerOn(ctx)) BLUE else 0) {
-                    val before = CallControls.speakerOn(ctx)
-                    CallControls.toggleSpeaker(ctx)
-                    handler.postDelayed({
-                        if (CallControls.speakerOn(ctx) != before) refresh()
-                        else {
-                            // Android only lets the phone app change a call's audio route, so say so and open it
-                            android.widget.Toast.makeText(ctx, "This phone only lets the call screen switch the speaker", android.widget.Toast.LENGTH_LONG).show()
-                            IslandController.open(a)
-                        }
-                    }, 400)     // the audio route takes a moment to change
+                val kind = CallControls.currentKind(ctx)
+                controls += ActionButton(kind.label + " \u25BE", if (kind != CallControls.Kind.EARPIECE) BLUE else 0) {
+                    routeMenu.add(d.key); refresh()
                 }
             }
             btns = controls + btns
+            if (d.key in routeMenu) btns = routeButtons(d, a, refresh)
         }
         a.buttons = btns
         return a
+    }
+
+    /** Calls whose audio-output menu is open (it replaces the button row until a choice is made). */
+    private val routeMenu = HashSet<String>()
+
+    private fun routeButtons(d: NotifData, a: IslandActivity, refresh: () -> Unit): List<ActionButton> {
+        val current = CallControls.currentKind(ctx)
+        val options = CallControls.routes(ctx).map { r ->
+            ActionButton(r.label, if (r.kind == current) BLUE else 0) {
+                routeMenu.remove(d.key)
+                CallControls.setRoute(ctx, r)
+                handler.postDelayed({
+                    if (CallControls.currentKind(ctx) == r.kind) refresh()
+                    else {
+                        // Android only lets the phone app change a call's audio route, so say so and open it
+                        refresh()
+                        android.widget.Toast.makeText(ctx, "This phone only lets the call screen change the audio output", android.widget.Toast.LENGTH_LONG).show()
+                        IslandController.open(a)
+                    }
+                }, 400)     // the audio route takes a moment to change
+            }
+        }
+        return options + ActionButton("Back") { routeMenu.remove(d.key); refresh() }
     }
 
     // ---- Alarm ringing ----

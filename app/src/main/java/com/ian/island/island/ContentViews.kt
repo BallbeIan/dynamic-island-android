@@ -408,7 +408,8 @@ class GenericExpandedView(ctx: Context, private val requestFocus: () -> Unit, pr
 
         buttons.removeAllViews()
         buttons.visibility = if (a.buttons.isEmpty()) GONE else VISIBLE
-        val compact = a.buttons.size > 3
+        // many buttons, or long labels such as "Headphones" / a Bluetooth name: use the compact style so nothing is cut
+        val compact = a.buttons.size > 3 || a.buttons.any { it.label.length > 9 }
         a.buttons.forEachIndexed { i, b ->
             buttons.addView(makeButton(b, accent, compact), LayoutParams(0, context.dpi(if (compact) 38 else 44), 1f).apply {
                 if (i > 0) marginStart = context.dpi(8)

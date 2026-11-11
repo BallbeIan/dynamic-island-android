@@ -48,12 +48,14 @@ class DebugReceiver : BroadcastReceiver() {
                 com.ian.island.settings.Prefs.get(ctx).edit().putString(i.getStringExtra("key"), i.getStringExtra("value")).apply()
             "com.ian.island.DEBUG_AUDIO" -> {
                 val a = ctx.getSystemService(android.media.AudioManager::class.java)
-                when (i.getStringExtra("do")) {
-                    "speaker" -> com.ian.island.activities.CallControls.toggleSpeaker(ctx)
-                    "mute" -> com.ian.island.activities.CallControls.toggleMute(ctx)
+                val cc = com.ian.island.activities.CallControls
+                when (val what = i.getStringExtra("do")) {
+                    "mute" -> cc.toggleMute(ctx)
+                    null -> {}
+                    else -> cc.routes(ctx).firstOrNull { it.kind.name.equals(what, true) }?.let { cc.setRoute(ctx, it) }
                 }
-                android.util.Log.d("IslandAudio", "mode=${a.mode} micMuted=${a.isMicrophoneMute} speakerOn=${com.ian.island.activities.CallControls.speakerOn(ctx)} " +
-                    "commDevice=${if (android.os.Build.VERSION.SDK_INT >= 31) a.communicationDevice?.type else null}")
+                android.util.Log.d("IslandAudio", "mode=${a.mode} micMuted=${a.isMicrophoneMute} route=${cc.currentKind(ctx)} " +
+                    "available=${cc.routes(ctx).map { it.kind.name }}")
             }
             "com.ian.island.DEBUG_TAP" -> IslandController.toggleExpand()
             "com.ian.island.DEBUG_SWAP" -> IslandController.swapSecondary()
