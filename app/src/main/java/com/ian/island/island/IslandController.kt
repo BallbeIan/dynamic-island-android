@@ -365,7 +365,10 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
     // ================= Gestures & media pass-through =================
 
     fun onGesture(g: Gesture) {
-        ActionRunner.run(app, g.action(app), g, primaryId?.let { acts[it] })
+        val primary = primaryId?.let { acts[it] }
+        // a tap on the always-on idle pill is a tap on the camera: nothing is showing
+        val gesture = if (g == Gesture.TAP && primaryId == "idle") Gesture.CAMERA_TAP else g
+        ActionRunner.run(app, gesture.action(app), gesture, primary)
     }
 
     fun mediaPlayPause() = media?.playPause() ?: MediaProvider.fallbackPlayPause(app)

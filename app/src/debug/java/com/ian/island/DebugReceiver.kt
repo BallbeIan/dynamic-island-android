@@ -44,6 +44,8 @@ class DebugReceiver : BroadcastReceiver() {
                 }
                 android.util.Log.d("IslandWin", "screenH=$h :: $line")
             }
+            "com.ian.island.DEBUG_PREF" ->
+                com.ian.island.settings.Prefs.get(ctx).edit().putString(i.getStringExtra("key"), i.getStringExtra("value")).apply()
             "com.ian.island.DEBUG_TAP" -> IslandController.toggleExpand()
             "com.ian.island.DEBUG_SWAP" -> IslandController.swapSecondary()
             "com.ian.island.DEBUG_CLEAR" -> { IslandController.remove("dbg:timer"); IslandController.remove("dbg:music") }

@@ -62,7 +62,7 @@ A small black pill around your front camera that shows what's happening on your 
 
 ## Gestures
 
-Tap, double tap, long press and swipes in four directions can each be assigned any action: expand or collapse, open the app, play / pause / next / previous, home, recents, back, screenshot, lock screen, open the notification shade or Quick Settings, toggle the flashlight, launch any app, or do nothing. There is also an optional **expand on touch** mode for a snappier feel.
+Tap, double tap, long press and swipes in four directions can each be assigned any action: expand or collapse, open the app, play / pause / next / previous, home, recents, back, screenshot, lock screen, open the notification shade or Quick Settings, toggle the flashlight, launch any app, or do nothing. There is also an optional **expand on touch** mode for a snappier feel. When the island has nothing to show you can also assign an action to **tapping the camera itself** (an invisible target sits over it), for example play / pause, the flashlight or a screenshot.
 
 ## Everyday controls
 

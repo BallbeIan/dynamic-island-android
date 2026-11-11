@@ -140,6 +140,28 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         title = "Island"
     }
 
+    // Invisible tap target over the camera while the island is idle (only exists if a camera-tap action is set).
+    private val camTarget = View(ctx).apply {
+        isClickable = true
+        setOnClickListener { IslandController.onGesture(Gesture.CAMERA_TAP) }
+    }
+    private var camTargetAttached = false
+    private val camParams = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        windowType,
+        BASE_FLAGS and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv(),
+        PixelFormat.TRANSLUCENT,
+    ).apply {
+        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        if (Build.VERSION.SDK_INT >= 28) {
+            layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= 30)
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            else WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        title = "Island camera tap"
+    }
+
     private val ticker = object : Runnable {
         override fun run() {
             collapsed.tick(); genericExp.tick(); mediaExp.tick()
@@ -178,11 +200,13 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         if (p == null) {
             primary = null
             hide()
+            syncCameraTarget()
             return
         }
         val wasHidden = mode == Mode.HIDDEN || hiding
         val changed = primary?.id != p.id
         primary = p
+        syncCameraTarget()
         if (wantSwap && trySwap(oldP, oldS, p, s)) return
         bindContent(p)
 
@@ -268,6 +292,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
             resetPillTransform()
             if (attached && primary != null && mode != Mode.HIDDEN) setMode(mode, contentChanged = true, fromDrop = true)
         }
+        syncCameraTarget()
     }
 
     // ================= Swapping the two pills =================
@@ -467,6 +492,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         refreshWallpaper()      // a binder call, so only here and not on every render
         applyAppearance()
         updateOffset()
+        syncCameraTarget()
         primary?.let { bindContent(it); setMode(if (mode == Mode.HIDDEN) Mode.HIDDEN else mode, contentChanged = false) }
     }
 
@@ -846,9 +872,35 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         }
     }
 
+    private fun canAddWindow() =
+        windowType != WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY || Settings.canDrawOverlays(ctx)
+
+    /** Shows or removes the invisible camera tap target: wanted only while nothing is showing and an action is set. */
+    private fun syncCameraTarget() {
+        val wanted = primary == null && !suppressed && canAddWindow() &&
+            Gesture.CAMERA_TAP.action(ctx) != GestureAction.NONE
+        if (!wanted) { removeCameraTarget(); return }
+        refreshCamera()
+        val w = max(ctx.dpi(64), cutoutHalf * 2 + ctx.dpi(24))
+        camParams.width = w
+        camParams.height = pillHeight()
+        camParams.x = targetX(w)
+        camParams.y = ctx.dpi(sp.int(Prefs.OFFSET, Prefs.DEFAULT_OFFSET))
+        try {
+            if (camTargetAttached) wm.updateViewLayout(camTarget, camParams)
+            else { wm.addView(camTarget, camParams); camTargetAttached = true }
+        } catch (_: Exception) { camTargetAttached = false }
+    }
+
+    private fun removeCameraTarget() {
+        if (!camTargetAttached) return
+        try { wm.removeView(camTarget) } catch (_: Exception) {}
+        camTargetAttached = false
+    }
+
     private fun attach(): Boolean {
         if (attached) return true
-        if (windowType == WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY && !Settings.canDrawOverlays(ctx)) return false
+        if (!canAddWindow()) return false
         updateOffsetParams()
         applyTouchableFlag()
         return try {

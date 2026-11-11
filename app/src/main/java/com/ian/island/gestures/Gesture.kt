@@ -21,6 +21,9 @@ enum class GestureAction(val id: String, val label: String) {
     TORCH("torch", "Toggle flashlight"),
     LAUNCH_APP("launch_app", "Launch an app…");
 
+    /** Does nothing without an activity on screen, so it is not offered for the idle camera tap. */
+    val needsActivity get() = this == EXPAND || this == DISMISS || this == OPEN_APP
+
     /** Needs the accessibility service. */
     val needsAccessibility get() = this in setOf(HOME, RECENTS, BACK, SCREENSHOT, LOCK)
 
@@ -36,7 +39,9 @@ enum class Gesture(val key: String, val label: String, val default: GestureActio
     SWIPE_LEFT("swipe_left", "Swipe left", GestureAction.PREVIOUS),
     SWIPE_RIGHT("swipe_right", "Swipe right", GestureAction.NEXT),
     SWIPE_DOWN("swipe_down", "Swipe down", GestureAction.NOTIFICATIONS),
-    SWIPE_UP("swipe_up", "Swipe up", GestureAction.DISMISS);
+    SWIPE_UP("swipe_up", "Swipe up", GestureAction.DISMISS),
+    /** Tapping where the camera is while the island has nothing to show (an invisible target sits over the camera). */
+    CAMERA_TAP("camera_tap", "Tap the camera (island idle)", GestureAction.NONE);
 
     fun action(ctx: Context): GestureAction =
         GestureAction.from(Prefs.get(ctx).getString(Prefs.gestureKey(key), null)) ?: default
