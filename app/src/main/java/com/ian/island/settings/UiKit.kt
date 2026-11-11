@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Switch
+import com.ian.island.island.dpi
 
 /**
  * Programmatic settings UI: a scrolling column of grouped cards. [section] starts a labelled card;
@@ -44,7 +45,7 @@ class UiKit(val act: Activity, title: String? = null) {
         Ui.padForInsets(act, root)
     }
 
-    fun dpi(v: Int) = Ui.dpi(act, v)
+    fun dpi(v: Int) = act.dpi(v)
 
     /** Re-reads values shown in value rows (call from onResume). */
     fun refresh() = refreshers.forEach { it() }

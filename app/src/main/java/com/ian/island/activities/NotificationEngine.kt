@@ -3,9 +3,14 @@ package com.ian.island.activities
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.ian.island.alerts.ScreenRecordTracker
+import com.ian.island.island.IslandActivity
 import com.ian.island.island.IslandController
 import com.ian.island.settings.Prefs
 
@@ -26,7 +31,7 @@ class NotificationEngine(private val ctx: Context) {
 
     fun restored(sbn: StatusBarNotification) = handle(sbn, null, initial = true)
 
-    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val handler = Handler(Looper.getMainLooper())
     private val lastAt = HashMap<String, Long>()
     private val pending = HashMap<String, Pair<StatusBarNotification, NotificationListenerService.RankingMap?>>()
 
@@ -36,12 +41,12 @@ class NotificationEngine(private val ctx: Context) {
      */
     fun posted(sbn: StatusBarNotification, rankingMap: NotificationListenerService.RankingMap?) {
         val k = sbn.key
-        val now = android.os.SystemClock.uptimeMillis()
+        val now = SystemClock.uptimeMillis()
         val last = lastAt[k] ?: 0L
         if (k in liveKeys && now - last < THROTTLE_MS) {
             if (pending.put(k, sbn to rankingMap) == null) {
                 handler.postDelayed({
-                    pending.remove(k)?.let { lastAt[k] = android.os.SystemClock.uptimeMillis(); handle(it.first, it.second, initial = false) }
+                    pending.remove(k)?.let { lastAt[k] = SystemClock.uptimeMillis(); handle(it.first, it.second, initial = false) }
                 }, THROTTLE_MS - (now - last))
             }
             return
@@ -67,7 +72,7 @@ class NotificationEngine(private val ctx: Context) {
 
     private fun handle(sbn: StatusBarNotification, ranking: NotificationListenerService.RankingMap?, initial: Boolean) {
         try { handleSafe(sbn, ranking, initial) } catch (e: Throwable) {
-            android.util.Log.w("IslandNotif", "ignored notification from ${sbn.packageName}: $e")
+            Log.w("IslandNotif", "ignored notification from ${sbn.packageName}: $e")
         }
     }
 
@@ -102,7 +107,7 @@ class NotificationEngine(private val ctx: Context) {
     }
 
     /** The live activity for this notification, or null if it should be a plain peek / ignored. */
-    private fun classifyLive(d: NotifData, forceLive: Boolean): com.ian.island.island.IslandActivity? {
+    private fun classifyLive(d: NotifData, forceLive: Boolean): IslandActivity? {
         if (d.isCall) {
             return if (prefs.getBoolean(Prefs.LIVE_CALLS, true)) builders.call(d) else null
         }
@@ -115,7 +120,7 @@ class NotificationEngine(private val ctx: Context) {
         if (d.isTimer && (d.ongoing || d.category == Notification.CATEGORY_ALARM) && prefs.getBoolean(Prefs.LIVE_TIMERS, true))
             return builders.timer(d)
         if (prefs.getBoolean(Prefs.LIVE_PROGRESS, true) &&
-            ((d.ongoing && (d.hasProgress && (!d.progressIndeterminate || d.promoted))) || (d.promoted && d.ongoing)))
+            d.ongoing && (d.promoted || (d.hasProgress && !d.progressIndeterminate)))
             return builders.progress(d)
         if (forceLive && d.ongoing && d.title.isNotEmpty() && prefs.getBoolean(Prefs.LIVE_OTHER, true))
             return builders.generic(d, live = true)

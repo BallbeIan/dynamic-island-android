@@ -10,6 +10,7 @@ import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.view.WindowManager
 import com.ian.island.IslandAccessibilityService
 import com.ian.island.IslandService
@@ -17,6 +18,7 @@ import com.ian.island.activities.MediaProvider
 import com.ian.island.gestures.ActionRunner
 import com.ian.island.gestures.Gesture
 import com.ian.island.settings.Prefs
+import com.ian.island.settings.ScreenPrefs
 import java.util.Calendar
 
 /**
@@ -248,7 +250,7 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
         handler.removeCallbacks(recomputeRunnable)
         val host = chooseHost()
         if (host == null || !enabled) {
-            overlay?.let { it.destroy() }
+            overlay?.destroy()
             overlay = null; overlayHost = null
             primaryId = null
             return
@@ -262,9 +264,8 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
         val o = overlay!!
 
         val all = ordered()
-        val main = all.filter { it.type != ActivityType.INDICATOR }
-        val inds = all.filter { it.type == ActivityType.INDICATOR }
-        val slots = (main + inds)
+        val (inds, main) = all.partition { it.type == ActivityType.INDICATOR }
+        val slots = main + inds
         var p = slots.getOrNull(0)
         val s = slots.getOrNull(1)
         if (p == null && prefs.getString(Prefs.SHOW_MODE, "activity") == "always") p = idle
@@ -335,7 +336,7 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
 
     /** [open] true from the systemui panel window event; false when another app window announces itself. */
     fun onSystemPanel(open: Boolean) {
-        val now = android.os.SystemClock.uptimeMillis()
+        val now = SystemClock.uptimeMillis()
         if (open) {
             panelOpenedAt = now
             handler.removeCallbacks(panelTimeout)
@@ -401,7 +402,7 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
     override fun onSharedPreferenceChanged(sp: SharedPreferences?, key: String?) {
         for (m in modules) try { m.onPrefChanged(key) } catch (_: Exception) {}
         media?.onPrefChanged(key)
-        when (com.ian.island.settings.ScreenPrefs.baseKey(key)) {
+        when (ScreenPrefs.baseKey(key)) {
             Prefs.VOLUME_REPLACE -> a11y?.syncKeyFilter()
             Prefs.OFFSET, Prefs.XOFFSET, Prefs.AUTO_CAMERA -> overlay?.updateOffset()
             in appearanceKeys -> overlay?.refreshAppearance()

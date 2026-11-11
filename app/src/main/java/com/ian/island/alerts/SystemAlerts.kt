@@ -1,5 +1,6 @@
 package com.ian.island.alerts
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.bluetooth.BluetoothClass
@@ -10,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.camera2.CameraManager
 import android.media.AudioManager
+import android.media.AudioRecordingConfiguration
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -32,9 +34,11 @@ import com.ian.island.island.IslandModule
 import com.ian.island.island.Kind
 import com.ian.island.island.Presentation
 import com.ian.island.island.VolumeInfo
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Executor
+import java.util.function.Consumer
 
 /**
  * Registers every system callback / broadcast (no polling) and turns changes into island alerts.
@@ -52,7 +56,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
     private var torchCb: CameraManager.TorchCallback? = null
     private var cameraCb: CameraManager.AvailabilityCallback? = null
     private var recCb: AudioManager.AudioRecordingCallback? = null
-    private var screenRecCb: java.util.function.Consumer<Int>? = null
+    private var screenRecCb: Consumer<Int>? = null
     private val receivers = ArrayList<BroadcastReceiver>()
 
     private var camActive = false
@@ -97,6 +101,11 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
 
     private inline fun safe(block: () -> Unit) { try { block() } catch (_: Throwable) {} }
 
+    /** A banner alert, but only once the start-up grace period is over (so existing state isn't announced). */
+    private fun flash(t: AlertType, title: String, subtitle: String = "") {
+        if (armed) Alerts.flash(ctx, t, title, subtitle)
+    }
+
     private fun receiver(vararg actions: String, onReceive: (Intent) -> Unit) {
         val r = object : BroadcastReceiver() { override fun onReceive(c: Context, i: Intent) = onReceive(i) }
         val f = IntentFilter().apply { actions.forEach { addAction(it) } }
@@ -113,23 +122,20 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         cm.registerNetworkCallback(NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(), wifiCb, handler)
         netCallbacks += wifiCb
 
-        var cell: Network? = null
-        val cellCb = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) { cell = network; if (armed) Alerts.flash(ctx, AlertType.MOBILE_DATA, "Mobile data connected") }
-            override fun onLost(network: Network) { if (network === cell) { cell = null; if (armed) Alerts.flash(ctx, AlertType.MOBILE_DATA, "Mobile data lost") } }
+        fun watch(request: NetworkRequest, type: AlertType, up: String, down: String) {
+            var net: Network? = null
+            val cb = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) { net = network; flash(type, up) }
+                override fun onLost(network: Network) { if (network === net) { net = null; flash(type, down) } }
+            }
+            cm.registerNetworkCallback(request, cb, handler)
+            netCallbacks += cb
         }
-        cm.registerNetworkCallback(NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR).build(), cellCb, handler)
-        netCallbacks += cellCb
-
-        var vpn: Network? = null
-        val vpnCb = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) { vpn = network; if (armed) Alerts.flash(ctx, AlertType.VPN, "VPN connected") }
-            override fun onLost(network: Network) { if (network === vpn) { vpn = null; if (armed) Alerts.flash(ctx, AlertType.VPN, "VPN disconnected") } }
-        }
-        cm.registerNetworkCallback(
-            NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_VPN)
-                .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build(), vpnCb, handler)
-        netCallbacks += vpnCb
+        watch(NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR).build(),
+            AlertType.MOBILE_DATA, "Mobile data connected", "Mobile data lost")
+        watch(NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build(),
+            AlertType.VPN, "VPN connected", "VPN disconnected")
     }
 
     /** Tracks the current Wi-Fi network and its name; shared by the API-specific callbacks below. */
@@ -140,7 +146,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         fun available(network: Network) {
             net = network
             if (!armed) return
-            handler.postDelayed({ if (net === network) Alerts.flash(ctx, AlertType.WIFI, "Wi-Fi connected", name ?: "") }, 700)
+            handler.postDelayed({ if (net === network) flash(AlertType.WIFI, "Wi-Fi connected", name ?: "") }, 700)
         }
 
         fun capabilities(caps: NetworkCapabilities) {
@@ -152,7 +158,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         fun lost(network: Network) {
             if (network !== net) return
             net = null
-            if (armed) Alerts.flash(ctx, AlertType.WIFI, "Wi-Fi disconnected", name ?: "")
+            flash(AlertType.WIFI, "Wi-Fi disconnected", name ?: "")
             name = null
         }
     }
@@ -164,7 +170,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
     }
 
     /** API 31+: ask for location-bearing WifiInfo so the SSID is available when location permission is granted. */
-    @android.annotation.SuppressLint("NewApi") // only instantiated on API 31+
+    @SuppressLint("NewApi") // only instantiated on API 31+
     private inner class WifiCallback31(private val st: WifiState) : ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
         override fun onAvailable(network: Network) = st.available(network)
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = st.capabilities(caps)
@@ -194,8 +200,8 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         // Hotspot (hidden but long-stable broadcast)
         receiver("android.net.wifi.WIFI_AP_STATE_CHANGED") {
             when (it.getIntExtra("wifi_state", -1)) {
-                13 -> if (armed) Alerts.flash(ctx, AlertType.HOTSPOT, "Hotspot on")
-                11 -> if (armed) Alerts.flash(ctx, AlertType.HOTSPOT, "Hotspot off")
+                13 -> flash(AlertType.HOTSPOT, "Hotspot on")
+                11 -> flash(AlertType.HOTSPOT, "Hotspot off")
             }
         }
 
@@ -205,7 +211,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
             if (next == null) Alerts.flash(ctx, AlertType.ALARM_SET, "Alarm cleared")
             else {
                 val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), if (DateFormat.is24HourFormat(ctx)) "EEE Hm" else "EEE hm")
-                Alerts.flash(ctx, AlertType.ALARM_SET, "Alarm set", java.text.SimpleDateFormat(pattern, Locale.getDefault()).format(Date(next.triggerTime)))
+                Alerts.flash(ctx, AlertType.ALARM_SET, "Alarm set", SimpleDateFormat(pattern, Locale.getDefault()).format(Date(next.triggerTime)))
             }
         }
 
@@ -217,33 +223,30 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
 
         // Ringer mode
         receiver(AudioManager.RINGER_MODE_CHANGED_ACTION) {
-            if (!armed) return@receiver
             when (am.ringerMode) {
-                AudioManager.RINGER_MODE_NORMAL -> Alerts.flash(ctx, AlertType.RINGER, "Ring", "Sound on")
-                AudioManager.RINGER_MODE_VIBRATE -> Alerts.flash(ctx, AlertType.RINGER, "Vibrate", "Sound off")
-                AudioManager.RINGER_MODE_SILENT -> Alerts.flash(ctx, AlertType.RINGER, "Silent", "Sound and vibration off")
+                AudioManager.RINGER_MODE_NORMAL -> flash(AlertType.RINGER, "Ring", "Sound on")
+                AudioManager.RINGER_MODE_VIBRATE -> flash(AlertType.RINGER, "Vibrate", "Sound off")
+                AudioManager.RINGER_MODE_SILENT -> flash(AlertType.RINGER, "Silent", "Sound and vibration off")
             }
         }
 
         // Do Not Disturb
         receiver(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED) {
-            if (!armed) return@receiver
             when (nm.currentInterruptionFilter) {
-                NotificationManager.INTERRUPTION_FILTER_ALL -> Alerts.flash(ctx, AlertType.DND, "Do Not Disturb off")
+                NotificationManager.INTERRUPTION_FILTER_ALL -> flash(AlertType.DND, "Do Not Disturb off")
                 NotificationManager.INTERRUPTION_FILTER_UNKNOWN -> {}
-                else -> Alerts.flash(ctx, AlertType.DND, "Do Not Disturb on")
+                else -> flash(AlertType.DND, "Do Not Disturb on")
             }
         }
 
         // Airplane / NFC
         receiver(Intent.ACTION_AIRPLANE_MODE_CHANGED) {
-            if (armed) Alerts.flash(ctx, AlertType.AIRPLANE, if (it.getBooleanExtra("state", false)) "Airplane mode on" else "Airplane mode off")
+            flash(AlertType.AIRPLANE, if (it.getBooleanExtra("state", false)) "Airplane mode on" else "Airplane mode off")
         }
         receiver("android.nfc.action.ADAPTER_STATE_CHANGED") {
-            if (!armed) return@receiver
             when (it.getIntExtra("android.nfc.extra.ADAPTER_STATE", -1)) {
-                3 -> Alerts.flash(ctx, AlertType.NFC, "NFC on")
-                1 -> Alerts.flash(ctx, AlertType.NFC, "NFC off")
+                3 -> flash(AlertType.NFC, "NFC on")
+                1 -> flash(AlertType.NFC, "NFC off")
             }
         }
     }
@@ -282,7 +285,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         a.title = streamLabel(stream)
         a.accent = col
         a.icon = { IconDrawable(if (muted && stream == AudioManager.STREAM_RING) Icon.BELL else ic, col) }
-        a.volume = VolumeInfo(a.title.toString(), level, max, muted) { v -> am.setStreamVolume(stream, v, 0) }
+        a.volume = VolumeInfo(level, max, muted) { v -> am.setStreamVolume(stream, v, 0) }
         a.transientMs = 2200
         a.presentation = Presentation.BANNER
         a.anim = Alerts.anim(ctx, AlertType.VOLUME)
@@ -295,7 +298,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
     private fun registerTorch() {
         val cb = object : CameraManager.TorchCallback() {
             override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
-                if (armed) Alerts.flash(ctx, AlertType.FLASHLIGHT, if (enabled) "Flashlight on" else "Flashlight off")
+                flash(AlertType.FLASHLIGHT, if (enabled) "Flashlight on" else "Flashlight off")
             }
         }
         camera.registerTorchCallback(cb, handler)
@@ -326,7 +329,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
 
     private fun registerMic() {
         val cb = object : AudioManager.AudioRecordingCallback() {
-            override fun onRecordingConfigChanged(configs: MutableList<android.media.AudioRecordingConfiguration>?) {
+            override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>?) {
                 val live = (configs ?: emptyList()).filter { Build.VERSION.SDK_INT < 29 || !it.isClientSilenced }
                 micActive = live.isNotEmpty()
                 micApp = live.firstNotNullOfOrNull { cfg ->
@@ -349,7 +352,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
     /** Android 15+: tells us when this app's windows are being recorded; older: system notification (see ScreenRecordTracker). */
     private fun registerScreenRecording() {
         if (Build.VERSION.SDK_INT < 35) return
-        val consumer = java.util.function.Consumer<Int> { state ->
+        val consumer = Consumer<Int> { state ->
             setRecording(state == WindowManager.SCREEN_RECORDING_STATE_VISIBLE)
         }
         screenRecCb = consumer
@@ -358,7 +361,7 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         setRecording(state == WindowManager.SCREEN_RECORDING_STATE_VISIBLE)
     }
 
-    fun setRecording(on: Boolean) {
+    private fun setRecording(on: Boolean) {
         if (on == screenRecording) return
         screenRecording = on
         if (on) recStart = System.currentTimeMillis()
@@ -369,10 +372,8 @@ class SystemAlerts(private val ctx: Context) : IslandModule {
         Alerts.indicator(ctx, AlertType.SCREEN_REC, screenRecording || ScreenRecordTracker.active, "Recording screen", "", timerBase = if (ScreenRecordTracker.active) ScreenRecordTracker.start else recStart)
     }
 
-    /** Settings "preview" button. */
-    fun preview(t: AlertType) = preview(ctx, t)
-
     companion object {
+        /** Settings "preview" button. */
         fun preview(ctx: Context, t: AlertType) = Alerts.flash(ctx, t, t.label.substringBefore(" ("), "Preview", force = true)
     }
 }

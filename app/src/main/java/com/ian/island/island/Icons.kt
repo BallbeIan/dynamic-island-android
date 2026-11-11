@@ -22,7 +22,7 @@ enum class Icon(val key: String, val label: String, val inPicker: Boolean = true
     FLASHLIGHT("flashlight", "Flashlight"), BOLT("bolt", "Lightning"), BATTERY("battery", "Battery"),
     CHECK("check", "Check mark"),
     // used by the settings UI only
-    GEAR("gear", "Gear", false), PALETTE("palette", "Palette", false), MUSIC("music", "Music note", false), TOUCH("touch", "Touch", false),
+    PALETTE("palette", "Palette", false), MUSIC("music", "Music note", false), TOUCH("touch", "Touch", false),
     PLAY("play", "Play", false), PAUSE("pause", "Pause", false), PREVIOUS("previous", "Previous", false), NEXT("next", "Next", false);
 
     companion object { fun from(key: String?, def: Icon) = values().firstOrNull { it.key == key } ?: def }
@@ -127,14 +127,6 @@ class IconDrawable(private val icon: Icon, private val color: Int = Color.WHITE)
                 r.set(20.8f, 10.5f, 22.2f, 13.5f); c.drawRect(r, fill)
             }
             Icon.CHECK -> poly(c, stroke, 5f, 12.5f, 10f, 17.5f, 19f, 7f)
-            Icon.GEAR -> {
-                c.drawCircle(12f, 12f, 3.2f, stroke); c.drawCircle(12f, 12f, 7.2f, stroke)
-                for (i in 0 until 8) {
-                    val a = Math.toRadians(i * 45.0)
-                    c.drawLine(12f + 7.2f * Math.cos(a).toFloat(), 12f + 7.2f * Math.sin(a).toFloat(),
-                        12f + 10f * Math.cos(a).toFloat(), 12f + 10f * Math.sin(a).toFloat(), stroke)
-                }
-            }
             Icon.PALETTE -> {
                 c.drawCircle(12f, 12f, 9f, stroke)
                 c.drawCircle(8f, 10f, 1.5f, fill); c.drawCircle(12f, 7.5f, 1.5f, fill)

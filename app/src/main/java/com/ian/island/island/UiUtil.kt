@@ -17,6 +17,10 @@ fun Context.dpi(v: Int): Int = dp(v.toFloat()).roundToInt()
 val GRAY_TEXT = Color.argb(170, 255, 255, 255)
 val GREEN = Color.rgb(48, 209, 88)
 val RED = Color.rgb(255, 69, 58)
+val BLUE = Color.rgb(10, 132, 255)
+val ORANGE = Color.rgb(255, 159, 10)
+val YELLOW = Color.rgb(255, 214, 10)
+val PURPLE = Color.rgb(191, 90, 242)
 
 fun styleText(v: TextView, sizeSp: Float, color: Int, bold: Boolean = false) {
     v.setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)

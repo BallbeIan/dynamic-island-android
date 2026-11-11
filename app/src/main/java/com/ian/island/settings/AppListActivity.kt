@@ -17,7 +17,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
+import com.ian.island.island.dp
 import kotlin.concurrent.thread
+import kotlin.math.roundToInt
 
 /**
  * One app picker for three jobs:
@@ -50,7 +52,7 @@ class AppListActivity : Activity() {
         }
     }
 
-    private fun dpi(v: Int) = Ui.dpi(this, v)
+        private fun dpi(v: Int) = dp(v.toFloat()).roundToInt()
 
     private fun makeRow(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL

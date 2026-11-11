@@ -40,7 +40,7 @@ class ActionButton(
 
 class ReplyAction(val hint: CharSequence, val send: (String) -> Unit)
 
-class VolumeInfo(val label: String, val level: Int, val max: Int, val muted: Boolean, val setLevel: (Int) -> Unit)
+class VolumeInfo(val level: Int, val max: Int, val muted: Boolean, val setLevel: (Int) -> Unit)
 
 /**
  * One thing the island can show. Providers create/update these and hand them to

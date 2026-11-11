@@ -25,7 +25,7 @@ enum class GestureAction(val id: String, val label: String) {
     val needsActivity get() = this == EXPAND || this == DISMISS || this == OPEN_APP
 
     /** Needs the accessibility service. */
-    val needsAccessibility get() = this in setOf(HOME, RECENTS, BACK, SCREENSHOT, LOCK)
+    val needsAccessibility get() = this == HOME || this == RECENTS || this == BACK || this == SCREENSHOT || this == LOCK
 
     companion object {
         fun from(id: String?) = values().firstOrNull { it.id == id }

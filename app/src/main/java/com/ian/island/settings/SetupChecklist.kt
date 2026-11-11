@@ -17,6 +17,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.ian.island.IslandAccessibilityService
+import com.ian.island.island.dp
 
 /**
  * Every permission Island can use, with live status and a button to grant each one.
@@ -130,7 +131,7 @@ class SetupChecklist(private val ui: UiKit) {
                 gravity = Gravity.CENTER
                 setPadding(ui.dpi(14), ui.dpi(7), ui.dpi(14), ui.dpi(7))
                 background = GradientDrawable().apply {
-                    cornerRadius = Ui.dp(act, 20f); setColor(Color.argb(30, 124, 140, 255)); setStroke(1, Ui.ACCENT)
+                    cornerRadius = act.dp(20f); setColor(Color.argb(30, 124, 140, 255)); setStroke(1, Ui.ACCENT)
                 }
                 setOnClickListener { _ -> it.grant() }
             }
@@ -173,7 +174,6 @@ class SetupChecklist(private val ui: UiKit) {
 
     fun refresh() {
         var requiredOk = true
-        var allOk = true
         for (it in items) {
             if (!it.show()) continue
             val g = it.granted()
@@ -183,7 +183,7 @@ class SetupChecklist(private val ui: UiKit) {
         }
         val a11y = accessibilityEnabled(act)
         val overlayOk = a11y || Settings.canDrawOverlays(act)
-        allOk = requiredOk && overlayOk
+        val allOk = requiredOk && overlayOk
         val needHelp = !listenerEnabled(act) || !a11y
         restricted.visibility = if (needHelp) View.VISIBLE else View.GONE
 

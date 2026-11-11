@@ -16,17 +16,15 @@ class SectionActivity : Activity() {
         ALERTS("System alerts", "Wi-Fi, Bluetooth, volume, privacy dots", Icon.BELL, Color.rgb(20, 125, 240)),
         GESTURES("Gestures", "Tap, swipe and long-press actions", Icon.TOUCH, Color.rgb(60, 180, 210)),
         EVERYDAY("Visibility", "Schedule, lock screen, hide in apps", Icon.ALARM, Color.rgb(98, 96, 220)),
-        GENERAL("General", "Notification peeks", Icon.GEAR, Color.rgb(110, 118, 135)),
     }
 
     private lateinit var ui: UiKit
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val section = Section.valueOf(intent.getStringExtra("section") ?: Section.GENERAL.name)
+        val section = Section.valueOf(intent.getStringExtra("section") ?: Section.APPEARANCE.name)
         ui = UiKit(this, section.title)
         when (section) {
-            Section.GENERAL -> GeneralScreen.build(ui)
             Section.APPEARANCE -> AppearanceScreen.build(ui)
             Section.MUSIC -> MusicScreen.build(ui)
             Section.LIVE -> LiveScreen.build(ui)

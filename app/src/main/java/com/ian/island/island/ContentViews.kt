@@ -2,15 +2,21 @@ package com.ian.island.island
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.text.InputType
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -20,12 +26,12 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 
-private fun iconOf(a: IslandActivity): android.graphics.drawable.Drawable =
+internal fun iconOf(a: IslandActivity): Drawable =
     a.icon?.invoke() ?: ColorDrawable(Color.DKGRAY)
 
 /** Small 6dp coloured dots (privacy / recording indicators) drawn inside the collapsed pill. */
 class DotsView(ctx: Context) : View(ctx) {
-    private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     var colors: List<Int> = emptyList()
         set(v) { field = v; requestLayout(); invalidate() }
 
@@ -34,7 +40,7 @@ class DotsView(ctx: Context) : View(ctx) {
         setMeasuredDimension(if (colors.isEmpty()) 0 else colors.size * d + (colors.size - 1) * context.dpi(3), d)
     }
 
-    override fun onDraw(c: android.graphics.Canvas) {
+    override fun onDraw(c: Canvas) {
         val d = context.dp(7f)
         colors.forEachIndexed { i, col ->
             paint.color = col
@@ -63,7 +69,7 @@ class CollapsedView(ctx: Context) : LinearLayout(ctx) {
         addView(lead, LayoutParams(ctx.dpi(24), ctx.dpi(24)))
         addView(View(ctx), LayoutParams(0, 1, 1f))
         styleText(timer, 13f, Color.WHITE, bold = true)
-        timer.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+        timer.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         styleText(label, 12f, Color.WHITE, bold = true)
         label.maxWidth = ctx.dpi(64)
         dot.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.WHITE) }
@@ -264,8 +270,8 @@ class MediaExpandedView(ctx: Context) : LinearLayout(ctx) {
             shape = GradientDrawable.OVAL
             setColor(if (filled) Color.WHITE else Color.argb(46, 255, 255, 255))
         }
-        b.background = android.graphics.drawable.RippleDrawable(
-            ColorStateList.valueOf(Color.argb(70, 128, 128, 128)), disc, android.graphics.drawable.ColorDrawable(Color.WHITE))
+        b.background = RippleDrawable(
+            ColorStateList.valueOf(Color.argb(70, 128, 128, 128)), disc, ColorDrawable(Color.WHITE))
         b.scaleType = ImageView.ScaleType.FIT_CENTER
         val pad = context.dpi((sizeDp * 0.27f).toInt())
         b.setPadding(pad, pad, pad, pad)
@@ -368,7 +374,7 @@ class GenericExpandedView(ctx: Context, private val onWantKeyboard: () -> Unit, 
         replyField.setPadding(ctx.dpi(14), 0, ctx.dpi(14), 0)
         replyField.background = GradientDrawable().apply { cornerRadius = ctx.dp(20f); setColor(Color.argb(40, 255, 255, 255)) }
         // Overlay windows are not focusable by default; ask for focus the moment the field is touched.
-        replyField.setOnTouchListener { v, e ->
+        replyField.setOnTouchListener { _, e ->
             if (e.action == MotionEvent.ACTION_DOWN) onWantKeyboard()
             false
         }
@@ -390,7 +396,7 @@ class GenericExpandedView(ctx: Context, private val onWantKeyboard: () -> Unit, 
         if (text.isEmpty()) return
         reply?.send?.invoke(text)
         replyField.setText("")
-        (context.getSystemService(android.view.inputmethod.InputMethodManager::class.java))
+        context.getSystemService(InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(replyField.windowToken, 0)
         onDoneTyping()
     }
@@ -420,7 +426,7 @@ class GenericExpandedView(ctx: Context, private val onWantKeyboard: () -> Unit, 
         // many buttons, or long labels such as "Headphones" / a Bluetooth name: use the compact style so nothing is cut
         val compact = a.buttons.size > 3 || a.buttons.any { it.label.length > 9 }
         a.buttons.forEachIndexed { i, b ->
-            buttons.addView(makeButton(b, accent, compact), LayoutParams(0, context.dpi(if (compact) 38 else 44), 1f).apply {
+            buttons.addView(makeButton(b, compact), LayoutParams(0, context.dpi(if (compact) 38 else 44), 1f).apply {
                 if (i > 0) marginStart = context.dpi(8)
             })
         }
@@ -429,11 +435,8 @@ class GenericExpandedView(ctx: Context, private val onWantKeyboard: () -> Unit, 
         replyField.hint = a.reply?.hint ?: ""
     }
 
-    private fun makeButton(b: ActionButton, accent: Int, compact: Boolean): TextView {
-        val bg = when (b.color) {
-            0 -> Color.argb(46, 255, 255, 255)
-            else -> b.color
-        }
+    private fun makeButton(b: ActionButton, compact: Boolean): TextView {
+        val bg = if (b.color == 0) Color.argb(46, 255, 255, 255) else b.color
         return TextView(context).apply {
             text = b.label
             styleText(this, if (compact) 12f else 14f, Color.WHITE, bold = true)
@@ -459,7 +462,7 @@ class GenericExpandedView(ctx: Context, private val onWantKeyboard: () -> Unit, 
     /** Called once the island window has become focusable: focus the field and bring up the keyboard. */
     fun focusReply() {
         replyField.requestFocus()
-        context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
-            ?.showSoftInput(replyField, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        context.getSystemService(InputMethodManager::class.java)
+            ?.showSoftInput(replyField, InputMethodManager.SHOW_IMPLICIT)
     }
 }

@@ -22,7 +22,8 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import kotlin.math.roundToInt
+import com.ian.island.island.dp
+import com.ian.island.island.dpi
 
 /** Design tokens and small view helpers shared by every settings screen. */
 object Ui {
@@ -37,11 +38,8 @@ object Ui {
     val WARN = Color.rgb(251, 191, 36)
     val BAD = Color.rgb(248, 113, 113)
 
-    fun dp(c: Context, v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, c.resources.displayMetrics)
-    fun dpi(c: Context, v: Int) = dp(c, v.toFloat()).roundToInt()
-
     fun round(c: Context, color: Int, radiusDp: Float) = GradientDrawable().apply {
-        setColor(color); cornerRadius = dp(c, radiusDp)
+        setColor(color); cornerRadius = c.dp(radiusDp)
     }
 
     fun ripple(content: Drawable?): Drawable =
@@ -55,7 +53,7 @@ object Ui {
 
     fun chevron(c: Context, left: Boolean = false, color: Int = TEXT2) = ImageView(c).apply {
         setImageDrawable(ChevronDrawable(left, color))
-        layoutParams = LinearLayout.LayoutParams(dpi(c, 20), dpi(c, 20))
+        layoutParams = LinearLayout.LayoutParams(c.dpi(20), c.dpi(20))
     }
 
     /** Edge-to-edge: content scrolls under the bars, so pad the screen by the system-bar insets. */
@@ -73,19 +71,19 @@ object Ui {
         val bar = LinearLayout(act).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dpi(act, 6), 0, dpi(act, 16), 0)
+            setPadding(act.dpi(6), 0, act.dpi(16), 0)
         }
         val back = FrameLayout(act).apply {
             background = ripple(null)
             setOnClickListener { act.finish() }
             addView(chevron(act, left = true, color = TEXT).apply {
-                layoutParams = FrameLayout.LayoutParams(dpi(act, 24), dpi(act, 24), Gravity.CENTER)
+                layoutParams = FrameLayout.LayoutParams(act.dpi(24), act.dpi(24), Gravity.CENTER)
             })
         }
-        bar.addView(back, LinearLayout.LayoutParams(dpi(act, 48), dpi(act, 48)))
+        bar.addView(back, LinearLayout.LayoutParams(act.dpi(48), act.dpi(48)))
         bar.addView(text(act, 20f, TEXT, medium = true).apply { text = title; isSingleLine = true },
-            LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dpi(act, 4) })
-        return bar.also { it.minimumHeight = dpi(act, 56) }
+            LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = act.dpi(4) })
+        return bar.also { it.minimumHeight = act.dpi(56) }
     }
 }
 

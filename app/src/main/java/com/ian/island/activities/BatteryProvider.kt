@@ -17,10 +17,12 @@ import com.ian.island.island.Intents
 import com.ian.island.island.IslandActivity
 import com.ian.island.island.IslandController
 import com.ian.island.island.IslandModule
+import com.ian.island.island.ORANGE
 import com.ian.island.island.Presentation
 import com.ian.island.island.RED
 import com.ian.island.island.Trailing
 import com.ian.island.settings.Prefs
+import kotlin.math.abs
 
 /** Charging animation, unplug, low / critical battery and full-charge alerts. */
 class BatteryProvider(private val ctx: Context) : IslandModule {
@@ -77,10 +79,15 @@ class BatteryProvider(private val ctx: Context) : IslandModule {
 
     // ---- events ----
 
+    private fun openSaver() = Intents.start(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+
+    /** "Fast charging · 25 min to full". */
+    private fun chargeInfo() = listOfNotNull(speedLabel(), eta()).joinToString(" · ")
+
     private fun speedLabel(): String {
         if (lastPlugType == BatteryManager.BATTERY_PLUGGED_WIRELESS) return "Wireless charging"
         val ua = try { bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) } catch (_: Exception) { 0 }
-        return if (kotlin.math.abs(ua) >= 2_000_000) "Fast charging" else "Charging"
+        return if (abs(ua) >= 2_000_000) "Fast charging" else "Charging"
     }
 
     private fun eta(): String? {
@@ -96,14 +103,14 @@ class BatteryProvider(private val ctx: Context) : IslandModule {
         val a = IslandActivity("battery:event", ActivityType.ALERT)
         val lv = level
         a.title = "$lv%"
-        a.subtitle = listOfNotNull(speedLabel(), eta()).joinToString(" · ")
+        a.subtitle = chargeInfo()
         a.accent = GREEN
         a.icon = { BatteryDrawable(lv, true, GREEN) }
         a.transientMs = 3800
         a.presentation = Presentation.BANNER
         a.anim = AnimStyle.POP
         a.expandable = false
-        a.onOpen = { Intents.start(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)) }
+        a.onOpen = { openSaver() }
         IslandController.post(a, announce = true)
     }
 
@@ -136,7 +143,7 @@ class BatteryProvider(private val ctx: Context) : IslandModule {
                 lowAlert("Battery critical", RED, 10_000)
             } else if (prefs.getBoolean(Prefs.LOW_ALERT, true) && lv <= low && !lowFired && lv > crit) {
                 lowFired = true
-                lowAlert("Battery low", Color.rgb(255, 159, 10), 8_000)
+                lowAlert("Battery low", ORANGE, 8_000)
             }
         }
 
@@ -168,10 +175,8 @@ class BatteryProvider(private val ctx: Context) : IslandModule {
         a.transientMs = ms
         a.presentation = Presentation.EXPANDED
         a.anim = AnimStyle.PULSE
-        a.buttons = listOf(ActionButton("Battery saver", color) {
-            Intents.start(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
-        })
-        a.onOpen = { Intents.start(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)) }
+        a.buttons = listOf(ActionButton("Battery saver", color) { openSaver() })
+        a.onOpen = { openSaver() }
         IslandController.post(a, announce = true)
     }
 
@@ -184,12 +189,12 @@ class BatteryProvider(private val ctx: Context) : IslandModule {
         val lv = level
         val a = IslandActivity("battery:charging", ActivityType.CHARGING)
         a.title = "$lv%"
-        a.subtitle = listOfNotNull(speedLabel(), eta()).joinToString(" · ")
+        a.subtitle = chargeInfo()
         a.accent = GREEN
         a.icon = { BatteryDrawable(lv, true, GREEN) }
         a.trailing = Trailing.Label("$lv%")
         a.progress = lv / 100f
-        a.onOpen = { Intents.start(ctx, Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)) }
+        a.onOpen = { openSaver() }
         IslandController.post(a, announce = false)
     }
 }

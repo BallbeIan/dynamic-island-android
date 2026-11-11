@@ -92,15 +92,10 @@ class MediaProvider(
     // ================= Sessions =================
 
     override fun onActiveSessionsChanged(list: MutableList<MediaController>?) {
-        val sessions = list ?: emptyList<MediaController>()
+        val sessions = list ?: emptyList()
         val tokens = sessions.map { it.sessionToken }.toSet()
-        val it = tracked.entries.iterator()
-        while (it.hasNext()) {
-            val e = it.next()
-            if (e.key !in tokens) {
-                try { e.value.first.unregisterCallback(e.value.second) } catch (_: Exception) {}
-                it.remove()
-            }
+        tracked.entries.removeAll { (token, tc) ->
+            (token !in tokens).also { gone -> if (gone) try { tc.first.unregisterCallback(tc.second) } catch (_: Exception) {} }
         }
         for (c in sessions) {
             if (c.sessionToken in tracked) continue

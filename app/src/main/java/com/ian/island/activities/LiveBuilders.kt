@@ -4,28 +4,28 @@ import android.app.Notification
 import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.telecom.TelecomManager
 import com.ian.island.island.ActionButton
 import com.ian.island.island.ActivityType
 import com.ian.island.island.AnimStyle
+import com.ian.island.island.BLUE
 import com.ian.island.island.GREEN
 import com.ian.island.island.Intents
-import com.ian.island.island.IslandController
 import com.ian.island.island.IslandActivity
+import com.ian.island.island.IslandController
+import com.ian.island.island.ORANGE
 import com.ian.island.island.Presentation
 import com.ian.island.island.RED
 import com.ian.island.island.ReplyAction
 import com.ian.island.island.Trailing
+import com.ian.island.island.YELLOW
 
 /** Builds the island activity for each kind of notification. */
 class LiveBuilders(private val ctx: Context) {
 
-    private val BLUE = Color.rgb(10, 132, 255)
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val ORANGE = Color.rgb(255, 159, 10)
-    private val YELLOW = Color.rgb(255, 214, 10)
 
     private fun id(d: NotifData) = "n:${d.key}"
 
@@ -43,11 +43,14 @@ class LiveBuilders(private val ctx: Context) {
 
     private fun isReply(a: Notification.Action) = a.remoteInputs?.any { it.allowFreeFormInput } == true
 
+    private val positiveRe = Regex("answer|accept|pick up")
+    private val negativeRe = Regex("decline|reject|hang|end call|dismiss call|ignore|stop|cancel|delete")
+
     private fun colorFor(label: String): Int {
         val l = label.lowercase()
         return when {
-            Regex("answer|accept|pick up").containsMatchIn(l) -> GREEN
-            Regex("decline|reject|hang|end call|dismiss call|ignore|stop|cancel|delete").containsMatchIn(l) -> RED
+            positiveRe.containsMatchIn(l) -> GREEN
+            negativeRe.containsMatchIn(l) -> RED
             else -> 0
         }
     }
@@ -75,7 +78,7 @@ class LiveBuilders(private val ctx: Context) {
         a.onOpen = open(d)
         var btns = buttons(d)
         val telecom = ctx.getSystemService(TelecomManager::class.java)
-        val canTelecom = ctx.checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val canTelecom = ctx.checkSelfPermission(android.Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED
         if (incoming) {
             a.priority = 200
             a.subtitle = d.text.ifEmpty { "Incoming call" }
@@ -234,7 +237,7 @@ class LiveBuilders(private val ctx: Context) {
             d.isTimer -> Trailing.Timer(d.whenMs, d.countDown)
             else -> Trailing.None
         }
-        a.progress = if (f >= 0f) f else -1f
+        a.progress = f
         a.buttons = buttons(d)
         a.reply = reply(d)
         a.presentation = Presentation.BANNER

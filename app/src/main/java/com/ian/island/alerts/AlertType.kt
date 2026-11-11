@@ -4,25 +4,24 @@ import android.content.Context
 import android.graphics.Color
 import com.ian.island.island.ActivityType
 import com.ian.island.island.AnimStyle
+import com.ian.island.island.BLUE
+import com.ian.island.island.GREEN
 import com.ian.island.island.Icon
 import com.ian.island.island.IconDrawable
 import com.ian.island.island.IslandActivity
 import com.ian.island.island.IslandController
+import com.ian.island.island.ORANGE
+import com.ian.island.island.PURPLE
 import com.ian.island.island.Presentation
+import com.ian.island.island.RED
 import com.ian.island.island.Trailing
+import com.ian.island.island.YELLOW
 import com.ian.island.settings.Prefs
-
-private val BLUE = Color.rgb(10, 132, 255)
-private val GREEN = Color.rgb(48, 209, 88)
-private val RED = Color.rgb(255, 69, 58)
-private val ORANGE = Color.rgb(255, 159, 10)
-private val YELLOW = Color.rgb(255, 214, 10)
-private val PURPLE = Color.rgb(191, 90, 242)
 
 /** Every system alert: default icon / colour / animation, all overridable in settings. */
 enum class AlertType(
     val key: String, val label: String, val defIcon: Icon, val defColor: Int, val defAnim: AnimStyle,
-    val defEnabled: Boolean = true, val indicator: Boolean = false,
+    val defEnabled: Boolean = true,
 ) {
     WIFI("wifi", "Wi-Fi connected / disconnected", Icon.WIFI, BLUE, AnimStyle.POP),
     BLUETOOTH("bluetooth", "Bluetooth device connected / disconnected", Icon.BLUETOOTH, BLUE, AnimStyle.POP),
@@ -32,9 +31,9 @@ enum class AlertType(
     VOLUME("volume", "Volume slider", Icon.VOLUME, Color.WHITE, AnimStyle.SLIDE),
     RINGER("ringer", "Ringer mode (ring / vibrate / silent)", Icon.BELL, ORANGE, AnimStyle.POP),
     DND("dnd", "Do Not Disturb on / off", Icon.DND, PURPLE, AnimStyle.POP),
-    SCREEN_REC("screen_rec", "Screen recording (red dot + timer)", Icon.RECORD, RED, AnimStyle.PULSE, indicator = true),
-    MIC("mic", "Microphone in use (orange dot)", Icon.MIC, ORANGE, AnimStyle.PULSE, indicator = true),
-    CAMERA("camera", "Camera in use (green dot)", Icon.CAMERA, GREEN, AnimStyle.PULSE, indicator = true),
+    SCREEN_REC("screen_rec", "Screen recording (red dot + timer)", Icon.RECORD, RED, AnimStyle.PULSE),
+    MIC("mic", "Microphone in use (orange dot)", Icon.MIC, ORANGE, AnimStyle.PULSE),
+    CAMERA("camera", "Camera in use (green dot)", Icon.CAMERA, GREEN, AnimStyle.PULSE),
     AIRPLANE("airplane", "Airplane mode", Icon.AIRPLANE, Color.WHITE, AnimStyle.SLIDE, defEnabled = false),
     NFC("nfc", "NFC on / off", Icon.NFC, BLUE, AnimStyle.POP, defEnabled = false),
     MOBILE_DATA("mobile_data", "Mobile data connected / lost", Icon.DATA, GREEN, AnimStyle.POP, defEnabled = false),

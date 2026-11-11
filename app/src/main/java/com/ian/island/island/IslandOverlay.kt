@@ -1,12 +1,20 @@
 package com.ian.island.island
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
+import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.graphics.drawable.Animatable
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
@@ -22,6 +30,7 @@ import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import android.view.animation.OvershootInterpolator
+import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -36,7 +45,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /** The little round pill that appears beside the main one when two activities are live. */
-private class SecondaryPill(val ctx: Context) : FrameLayout(ctx) {
+private class SecondaryPill(private val ctx: Context) : FrameLayout(ctx) {
     private val bg = GradientDrawable().apply { shape = GradientDrawable.OVAL }
     private val icon = ImageView(ctx)
     private val ring = RingView(ctx)
@@ -45,7 +54,6 @@ private class SecondaryPill(val ctx: Context) : FrameLayout(ctx) {
     init {
         background = bg
         outlineProvider = ViewOutlineProvider.BACKGROUND
-        clipToOutline = false
         icon.scaleType = ImageView.ScaleType.CENTER_CROP
         roundClip(icon, 0f, oval = true)
         val pad = ctx.dpi(7)
@@ -60,9 +68,10 @@ private class SecondaryPill(val ctx: Context) : FrameLayout(ctx) {
         activityId = a.id
         bg.setColor(bgColor)
         bg.setStroke(if (stroke != 0) ctx.dpi(2) else 0, stroke)
-        icon.setImageDrawable(a.icon?.invoke() ?: ColorDrawable(Color.DKGRAY))
+        icon.setImageDrawable(iconOf(a))
         val t = a.trailing
-        if (t is Trailing.Ring) { ring.visibility = VISIBLE; ring.color = accent; ring.fraction = t.fraction } else ring.visibility = GONE
+        ring.visibility = if (t is Trailing.Ring) VISIBLE else GONE
+        if (t is Trailing.Ring) { ring.color = accent; ring.fraction = t.fraction }
     }
 }
 
@@ -124,11 +133,11 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     private val mediaExp = MediaExpandedView(ctx)
     private val genericExp = GenericExpandedView(ctx, { enableKeyboard() }, { setFocusable(false) })
 
-    private val params = WindowManager.LayoutParams(
+    private fun overlayParams(flags: Int, windowTitle: String) = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         windowType,
-        BASE_FLAGS,
+        flags,
         PixelFormat.TRANSLUCENT,
     ).apply {
         gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -137,8 +146,10 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
             else WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-        title = "Island"
+        title = windowTitle
     }
+
+    private val params = overlayParams(BASE_FLAGS, "Island")
 
     // Invisible tap target over the camera while the island is idle (only exists if a camera-tap action is set).
     private val camTarget = View(ctx).apply {
@@ -146,21 +157,8 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         setOnClickListener { IslandController.onGesture(Gesture.CAMERA_TAP) }
     }
     private var camTargetAttached = false
-    private val camParams = WindowManager.LayoutParams(
-        WindowManager.LayoutParams.WRAP_CONTENT,
-        WindowManager.LayoutParams.WRAP_CONTENT,
-        windowType,
-        BASE_FLAGS and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv(),
-        PixelFormat.TRANSLUCENT,
-    ).apply {
-        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        if (Build.VERSION.SDK_INT >= 28) {
-            layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= 30)
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-            else WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        }
-        title = "Island camera tap"
-    }
+    private val camParams = overlayParams(
+        BASE_FLAGS and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv(), "Island camera tap")
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -266,10 +264,10 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
                 collapsed.alpha = a; expandedHost.alpha = a; banner.alpha = a
                 leftSec.alpha = a; rightSec.alpha = a
             }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
+            addListener(object : AnimatorListenerAdapter() {
                 private var cancelled = false
-                override fun onAnimationCancel(an: android.animation.Animator) { cancelled = true }
-                override fun onAnimationEnd(an: android.animation.Animator) {
+                override fun onAnimationCancel(an: Animator) { cancelled = true }
+                override fun onAnimationEnd(an: Animator) {
                     if (cancelled) return
                     // the drop slips into the camera
                     pill.animate().scaleX(0f).scaleY(0f).setDuration(120).withEndAction { onEnd() }.start()
@@ -304,7 +302,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     fun noteSwap() { swapPending = true }
 
     /** The stand-in used while a pill travels: shape + icon only, sized exactly like the real views. */
-    private inner class Ghost(icon: android.graphics.drawable.Drawable?) : FrameLayout(ctx) {
+    private inner class Ghost(icon: Drawable?) : FrameLayout(ctx) {
         private val bg = GradientDrawable()
         private val iconView = ImageView(ctx)
 
@@ -338,13 +336,17 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
 
     /** Width of the collapsed pill for [p], measuring its trailing content on [probe]. */
     private fun collapsedWidth(p: IslandActivity, probe: CollapsedView, h: Int): Int {
-        val screenW = ctx.resources.displayMetrics.widthPixels
-        val secExtra = if (secondary != null && sp.bool(Prefs.DOUBLE_PILL, true)) h + ctx.dpi(sp.int(Prefs.DOUBLE_GAP, 6)) else 0
-        val wide = min(screenW - ctx.dpi(16) - 2 * secExtra, ctx.dpi(420))
+        val wide = maxWidth(h, withSecondary = true)
         val pref = min(ctx.dpi(sp.int(Prefs.WIDTH, Prefs.DEFAULT_WIDTH)), wide)
         if (p.type == ActivityType.IDLE) return ctx.dpi(96)
         val need = 2 * (cutoutHalf + probe.trailingWidthPx() + ctx.dpi(10))
         return min(max(pref, need), wide)
+    }
+
+    /** Widest the pill may be: the screen minus a margin, minus the room the second pill needs when it is shown. */
+    private fun maxWidth(h: Int, withSecondary: Boolean): Int {
+        val secExtra = if (withSecondary && secondary != null && sp.bool(Prefs.DOUBLE_PILL, true)) h + ctx.dpi(sp.int(Prefs.DOUBLE_GAP, 6)) else 0
+        return min(ctx.resources.displayMetrics.widthPixels - ctx.dpi(16) - 2 * secExtra, ctx.dpi(420))
     }
 
     /**
@@ -370,11 +372,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         val finalW = collapsedWidth(p, probe, h)
         fun secOffset(pillW: Int) = sign * (pillW / 2f + gap + h / 2f)
 
-        var started = false
-
-        fun begin() {
-            if (started) return
-            started = true
+        run {
             // the small pill's ghost is identical to the real one, so the real one steps aside at once; the main
             // pill cross-dissolves into its ghost (so its timer / label fades instead of popping off), and the new
             // content is bound only once the real pill is fully dissolved
@@ -429,8 +427,8 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
                         ghostC.place(w, hh, 0f, g.coerceIn(0f, 1f), seg(u, 0.35f, 0.9f))
                     }
                 }
-                addListener(object : android.animation.AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(an: android.animation.Animator) {
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(an: Animator) {
                         swapping = false
                         if (!bound) { bound = true; primary?.let { bindContent(it) } }
                         // real views take over at the final geometry (underneath the ghosts), then the ghosts
@@ -453,7 +451,6 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
             }
         }
 
-        begin()
         return true
     }
 
@@ -493,7 +490,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         applyAppearance()
         updateOffset()
         syncCameraTarget()
-        primary?.let { bindContent(it); setMode(if (mode == Mode.HIDDEN) Mode.HIDDEN else mode, contentChanged = false) }
+        primary?.let { bindContent(it); setMode(mode, contentChanged = false) }
     }
 
     fun destroy() {
@@ -694,17 +691,22 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     }
 
     private fun applyGeometry(h: Int) {
-        val lp = pill.layoutParams as LinearLayout.LayoutParams
-        lp.width = curW; lp.height = curH
-        lp.topMargin = max(0, (h - curH) / 2)
-        pill.layoutParams = lp
+        resize(pill, curW, curH).topMargin = max(0, (h - curH) / 2)
         pillBg.cornerRadius = curR
         pill.invalidateOutline()
-        leftSlot.layoutParams = LinearLayout.LayoutParams(curL, h)
-        rightSlot.layoutParams = LinearLayout.LayoutParams(curRt, h)
+        resize(leftSlot, curL, h)
+        resize(rightSlot, curRt, h)
         // near a screen edge the window slides inwards as the pill grows, so it never runs off-screen
         val nx = targetX(curW + curL + curRt + 2 * glowPad())
         if (attached && nx != params.x) { params.x = nx; try { wm.updateViewLayout(root, params) } catch (_: Exception) {} }
+    }
+
+    /** Updates a row child's size in place (no new LayoutParams per animation frame) and requests a layout. */
+    private fun resize(v: View, w: Int, h: Int): LinearLayout.LayoutParams {
+        val lp = v.layoutParams as LinearLayout.LayoutParams
+        lp.width = w; lp.height = h
+        v.layoutParams = lp
+        return lp
     }
 
     /** Fades the second pill in/out (it tucks away while the main pill is expanded). */
@@ -751,7 +753,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         mediaExp.visibility = if (exp === mediaExp) View.VISIBLE else View.GONE
         genericExp.visibility = if (exp === genericExp) View.VISIBLE else View.GONE
         showing = target
-        for (v in listOf<View>(collapsed, expandedHost, banner)) {
+        for (v in contentViews) {
             contentAnims.remove(v)?.cancel()
             if (v === target) {
                 v.visibility = View.VISIBLE
@@ -765,13 +767,14 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         }
     }
 
+    private val contentViews = arrayOf<View>(collapsed, expandedHost, banner)
     private val contentAnims = HashMap<View, ValueAnimator>()
 
     /** Radius in px; no-op before Android 12. */
     private fun blur(v: View, px: Float) {
         if (Build.VERSION.SDK_INT < 31) return
         v.setRenderEffect(if (px < 0.5f) null
-        else android.graphics.RenderEffect.createBlurEffect(px, px, android.graphics.Shader.TileMode.CLAMP))
+        else RenderEffect.createBlurEffect(px, px, Shader.TileMode.CLAMP))
     }
 
     /**
@@ -793,10 +796,10 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
                 v.scaleX = sc; v.scaleY = sc
                 blur(v, (1f - vis) * maxBlur)
             }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
+            addListener(object : AnimatorListenerAdapter() {
                 private var cancelled = false
-                override fun onAnimationCancel(an: android.animation.Animator) { cancelled = true }
-                override fun onAnimationEnd(an: android.animation.Animator) {
+                override fun onAnimationCancel(an: Animator) { cancelled = true }
+                override fun onAnimationEnd(an: Animator) {
                     contentAnims.remove(v)
                     if (cancelled) return
                     if (appear) { v.alpha = 1f; v.scaleX = 1f; v.scaleY = 1f; blur(v, 0f) }
@@ -812,7 +815,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         val icon = banner.icon
         icon.animate().cancel()
         icon.scaleX = 1f; icon.scaleY = 1f; banner.translationY = 0f
-        (icon.drawable as? android.graphics.drawable.Animatable)?.start()
+        (icon.drawable as? Animatable)?.start()
         when (p.anim) {
             AnimStyle.POP -> {
                 icon.scaleX = 0.3f; icon.scaleY = 0.3f
@@ -826,18 +829,15 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
             AnimStyle.PULSE -> {
                 ObjectAnimator.ofPropertyValuesHolder(
                     icon,
-                    android.animation.PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.28f, 1f),
-                    android.animation.PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.28f, 1f),
+                    PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.28f, 1f),
+                    PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.28f, 1f),
                 ).apply { duration = 520; startDelay = 150; repeatCount = 2 }.start()
             }
         }
     }
 
     private fun targetSize(m: Mode, p: IslandActivity, h: Int): Pair<Int, Int> {
-        val screenW = ctx.resources.displayMetrics.widthPixels
-        val secExtra = if (m != Mode.EXPANDED && secondary != null && sp.bool(Prefs.DOUBLE_PILL, true)) h + ctx.dpi(sp.int(Prefs.DOUBLE_GAP, 6)) else 0
-        val wide = min(screenW - ctx.dpi(16) - 2 * secExtra, ctx.dpi(420))
-        val collapsedW = min(ctx.dpi(sp.int(Prefs.WIDTH, Prefs.DEFAULT_WIDTH)), wide)
+        val wide = maxWidth(h, withSecondary = m != Mode.EXPANDED)
         return when (m) {
             Mode.COLLAPSED -> collapsedWidth(p, collapsed, h) to h
             Mode.EXPANDED -> {
@@ -849,6 +849,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
             Mode.BANNER -> {
                 banner.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+                val collapsedW = min(ctx.dpi(sp.int(Prefs.WIDTH, Prefs.DEFAULT_WIDTH)), wide)
                 val w = if (p.kind == Kind.VOLUME) wide else min(wide, max(collapsedW, banner.measuredWidth + ctx.dpi(4)))
                 banner.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
@@ -963,7 +964,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
         params.flags = if (focusable) params.flags and f.inv() else params.flags or f
         if (attached) try { wm.updateViewLayout(root, params) } catch (_: Exception) {}
         if (!focusable) {
-            (ctx.getSystemService(android.view.inputmethod.InputMethodManager::class.java))
+            ctx.getSystemService(InputMethodManager::class.java)
                 ?.hideSoftInputFromWindow(root.windowToken, 0)
             genericExp.clearReply()
         }
@@ -1046,14 +1047,11 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
 
         banner.visibility = View.GONE
         pill.addView(banner, FrameLayout.LayoutParams(ctx.dpi(300), ctx.dpi(68), Gravity.CENTER))
-
-        // the pill grows from the left edge of the row's first slot; keep the row layout static
-        row.layoutTransition = null
     }
 
     companion object {
         /** Damped spring: quick start, one small overshoot (~4%), then settles. */
-        private val SPRING = android.animation.TimeInterpolator { t ->
+        private val SPRING = TimeInterpolator { t ->
             if (t >= 1f) 1f else (1.0 - Math.exp(-7.0 * t) * Math.cos(7.0 * t)).toFloat()
         }
 

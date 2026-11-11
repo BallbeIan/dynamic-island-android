@@ -3,15 +3,16 @@ package com.ian.island
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.KeyguardManager
-import android.graphics.Rect
-import android.view.accessibility.AccessibilityWindowInfo
+import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.media.AudioManager
 import android.view.KeyEvent
-import com.ian.island.settings.Prefs
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityWindowInfo
 import android.view.inputmethod.InputMethodManager
 import com.ian.island.island.IslandController
+import com.ian.island.settings.Prefs
 
 /**
  * Hosts the overlay as TYPE_ACCESSIBILITY_OVERLAY (draws over the status bar / cutout / lock screen),
@@ -37,7 +38,6 @@ class IslandAccessibilityService : AccessibilityService() {
         IslandController.attachAccessibility(this)
         syncKeyFilter()
         refreshWindowState()
-
     }
 
     /** Only intercept key events while "replace volume panel" is on. */
@@ -67,16 +67,23 @@ class IslandAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * True while an app is full screen (video, game, immersive): the focused app window covers the whole screen and
-     * the status bar's own window is gone from the window list. Null when the list isn't available.
+     * Re-reads everything derived from the window list (also called on screen on): whether the shade / Quick
+     * Settings (or another full-screen system surface such as the power menu) is the focused window, and whether an
+     * app is full screen (it covers the screen and the status bar's own window is gone). Never looks at window
+     * content. Returns whether the panel is open, or null when the window list isn't available.
      */
-    private fun fullScreenApp(): Boolean? {
+    fun refreshWindowState(): Boolean? {
         val list = try { windows } catch (_: Exception) { return null }
         if (list.isEmpty()) return null
-        if (getSystemService(KeyguardManager::class.java).isKeyguardLocked) return false
+        val locked = getSystemService(KeyguardManager::class.java).isKeyguardLocked
         val dm = resources.displayMetrics
-        val screenW = dm.widthPixels
-        val screenH = dm.heightPixels
+        val panel = !locked && systemPanelOpen(list, dm.heightPixels)
+        IslandController.setSystemPanel(panel)
+        IslandController.setFullscreen(!locked && fullScreenApp(list, dm.widthPixels, dm.heightPixels))
+        return panel
+    }
+
+    private fun fullScreenApp(list: List<AccessibilityWindowInfo>, screenW: Int, screenH: Int): Boolean {
         val r = Rect()
         val app = list.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && (it.isActive || it.isFocused) } ?: return false
         app.getBoundsInScreen(r)
@@ -88,10 +95,12 @@ class IslandAccessibilityService : AccessibilityService() {
         return !statusBarListed
     }
 
-    /** Re-reads everything derived from the window list (also called on screen on). */
-    fun refreshWindowState() {
-        systemPanelOpen()?.let { IslandController.setSystemPanel(it) }
-        fullScreenApp()?.let { IslandController.setFullscreen(it) }
+    private fun systemPanelOpen(list: List<AccessibilityWindowInfo>, screenH: Int): Boolean {
+        val r = Rect()
+        return list.any { w ->
+            w.getBoundsInScreen(r)
+            w.type == AccessibilityWindowInfo.TYPE_SYSTEM && (w.isActive || w.isFocused) && r.top <= 0 && r.height() >= screenH / 2
+        }
     }
 
     /** The shade / Quick Settings announce themselves as a systemui window with their whole content as text. */
@@ -99,23 +108,6 @@ class IslandAccessibilityService : AccessibilityService() {
         val t = text.joinToString(" ").lowercase()
         return t.contains("quick settings") || t.contains("notification shade") ||
             t.contains("notification panel") || text.size >= 4
-    }
-
-    /**
-     * True while the notification shade / Quick Settings (or another full-screen system surface such as the
-     * power menu) is the focused window: a full-screen TYPE_SYSTEM window with no app window in front of it.
-     * Returns null when the window list isn't available. Never looks at window content.
-     */
-    private fun systemPanelOpen(): Boolean? {
-        val list = try { windows } catch (_: Exception) { return null }
-        if (list.isEmpty()) return null
-        if (getSystemService(KeyguardManager::class.java).isKeyguardLocked) return false
-        val h = resources.displayMetrics.heightPixels
-        val r = Rect()
-        return list.any { w ->
-            w.getBoundsInScreen(r)
-            w.type == AccessibilityWindowInfo.TYPE_SYSTEM && (w.isActive || w.isFocused) && r.top <= 0 && r.height() >= h / 2
-        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -126,9 +118,7 @@ class IslandAccessibilityService : AccessibilityService() {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
         val cls = event.className?.toString() ?: return
-        val byWindows = systemPanelOpen()
-        if (byWindows != null) IslandController.setSystemPanel(byWindows)
-        fullScreenApp()?.let { IslandController.setFullscreen(it) }
+        val byWindows = refreshWindowState()
         if (pkg == "com.android.systemui") {
             if (byWindows == null && looksLikePanel(event.text)) IslandController.onSystemPanel(true)
             return
@@ -150,7 +140,7 @@ class IslandAccessibilityService : AccessibilityService() {
         IslandController.onConfigChanged()
     }
 
-    override fun onUnbind(intent: android.content.Intent?): Boolean {
+    override fun onUnbind(intent: Intent?): Boolean {
         teardown()
         return super.onUnbind(intent)
     }
