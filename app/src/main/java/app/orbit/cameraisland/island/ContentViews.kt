@@ -270,8 +270,9 @@ class MediaExpandedView(ctx: Context) : LinearLayout(ctx) {
             shape = GradientDrawable.OVAL
             setColor(if (filled) Color.WHITE else Color.argb(46, 255, 255, 255))
         }
-        b.background = RippleDrawable(
-            ColorStateList.valueOf(Color.argb(70, 128, 128, 128)), disc, ColorDrawable(Color.WHITE))
+        // The mask must be round too; a rectangular mask makes the press highlight flash as a square.
+        val mask = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.WHITE) }
+        b.background = RippleDrawable(ColorStateList.valueOf(Color.argb(70, 128, 128, 128)), disc, mask)
         b.scaleType = ImageView.ScaleType.FIT_CENTER
         val pad = context.dpi((sizeDp * 0.27f).toInt())
         b.setPadding(pad, pad, pad, pad)
