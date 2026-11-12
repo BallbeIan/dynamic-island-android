@@ -2,18 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <!-- debug builds only: lets adb create test activities and trigger a pill swap -->
-        <receiver android:name="com.ian.island.DebugReceiver" android:exported="true" android:permission="android.permission.DUMP">
+        <receiver android:name="app.orbit.cameraisland.DebugReceiver" android:exported="true" android:permission="android.permission.DUMP">
             <intent-filter>
-                <action android:name="com.ian.island.DEBUG_TWO" />
-                <action android:name="com.ian.island.DEBUG_SWAP" />
-                <action android:name="com.ian.island.DEBUG_CLEAR" />
-                <action android:name="com.ian.island.DEBUG_TAP" />
-                <action android:name="com.ian.island.DEBUG_CLOCK_CANCEL" />
-                <action android:name="com.ian.island.DEBUG_WINDOWS" />
-                <action android:name="com.ian.island.DEBUG_PREF" />
-                <action android:name="com.ian.island.DEBUG_AUDIO" />
-                <action android:name="com.ian.island.DEBUG_MEDIA" />
-                <action android:name="com.ian.island.DEBUG_REPLY" />
+                <action android:name="app.orbit.cameraisland.DEBUG_TWO" />
+                <action android:name="app.orbit.cameraisland.DEBUG_SWAP" />
+                <action android:name="app.orbit.cameraisland.DEBUG_CLEAR" />
+                <action android:name="app.orbit.cameraisland.DEBUG_TAP" />
+                <action android:name="app.orbit.cameraisland.DEBUG_CLOCK_CANCEL" />
+                <action android:name="app.orbit.cameraisland.DEBUG_WINDOWS" />
+                <action android:name="app.orbit.cameraisland.DEBUG_PREF" />
+                <action android:name="app.orbit.cameraisland.DEBUG_AUDIO" />
+                <action android:name="app.orbit.cameraisland.DEBUG_MEDIA" />
+                <action android:name="app.orbit.cameraisland.DEBUG_REPLY" />
             </intent-filter>
         </receiver>
     </application>

@@ -12,11 +12,11 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.ian.island"
+    namespace = "app.orbit.cameraisland"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.ian.island"
+        applicationId = "app.orbit.cameraisland"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
