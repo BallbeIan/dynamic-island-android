@@ -295,7 +295,7 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
     /** Whether the island may be shown right now (every hiding rule in one place). */
     private fun visibleNow(): Boolean {
         if (!enabled || !screenOn || panelOpen) return false
-        if (fullscreen && !prefs.getBoolean(Prefs.SHOW_IN_FULLSCREEN, false)) return false
+        if (fullscreen && !prefs.getBoolean(Prefs.SHOW_IN_FULLSCREEN, false) && !hasAlertShowing()) return false
         if (prefs.getBoolean(Prefs.SCHEDULE_ON, false) && !inSchedule()) return false
         if (prefs.getBoolean(Prefs.HIDE_LOCK, false) &&
             app.getSystemService(KeyguardManager::class.java).isKeyguardLocked) return false
@@ -304,6 +304,11 @@ object IslandController : SharedPreferences.OnSharedPreferenceChangeListener {
         if (prefs.getBoolean(Prefs.HIDE_LANDSCAPE, false) &&
             app.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) return false
         return true
+    }
+
+    /** A system alert banner, the volume slider or a ringing call is up: these show even over a full-screen app. */
+    private fun hasAlertShowing() = acts.values.any {
+        it.id.startsWith("alert:") || it.id == "volume" || (it.type == ActivityType.CALL && it.priority >= 200)
     }
 
     private fun minutesNow(): Int {

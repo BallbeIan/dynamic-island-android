@@ -84,6 +84,14 @@ class LiveBuilders(private val ctx: Context) {
             a.subtitle = d.text.ifEmpty { "Incoming call" }
             a.presentation = Presentation.EXPANDED
             a.trailing = Trailing.Dot(GREEN)
+            // The dialer's own Answer action often fails when fired from the background, so answer through Telecom
+            // when allowed and only fall back to the notification's action if that throws.
+            if (canTelecom) btns = btns.map { b ->
+                if (b.color != GREEN) b
+                else ActionButton(b.label, b.color, b.icon) {
+                    try { telecom.acceptRingingCall() } catch (_: Exception) { b.run() }
+                }
+            }
             if (btns.none { it.color == GREEN } && canTelecom)
                 btns = btns + ActionButton("Answer", GREEN) { try { telecom.acceptRingingCall() } catch (_: Exception) {} }
             if (btns.none { it.color == RED } && canTelecom && android.os.Build.VERSION.SDK_INT >= 28)

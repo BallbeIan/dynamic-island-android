@@ -26,6 +26,28 @@ class IslandAccessibilityService : AccessibilityService() {
         @Volatile
         var instance: IslandAccessibilityService? = null
             private set
+        private const val REPEAT_DELAY_MS = 400L
+        private const val REPEAT_INTERVAL_MS = 90L
+    }
+
+    private val keyHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var repeatDir = 0
+    private val repeatStep = object : Runnable {
+        override fun run() {
+            if (repeatDir == 0) return
+            adjustVolume(repeatDir)
+            keyHandler.postDelayed(this, REPEAT_INTERVAL_MS)
+        }
+    }
+
+    private fun adjustVolume(dir: Int) {
+        getSystemService(AudioManager::class.java)
+            .adjustSuggestedStreamVolume(dir, AudioManager.USE_DEFAULT_STREAM_TYPE, 0)
+    }
+
+    private fun stopRepeat() {
+        repeatDir = 0
+        keyHandler.removeCallbacks(repeatStep)
     }
 
     private var imePackages: Set<String> = emptySet()
@@ -60,9 +82,15 @@ class IslandAccessibilityService : AccessibilityService() {
             KeyEvent.KEYCODE_VOLUME_DOWN -> AudioManager.ADJUST_LOWER
             else -> return false
         }
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            getSystemService(AudioManager::class.java)
-                .adjustSuggestedStreamVolume(dir, AudioManager.USE_DEFAULT_STREAM_TYPE, 0)
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0 && repeatDir != dir) {
+                // The key filter doesn't reliably deliver auto-repeat, so repeat here until the key is released.
+                stopRepeat()
+                repeatDir = dir
+                adjustVolume(dir)
+                keyHandler.postDelayed(repeatStep, REPEAT_DELAY_MS)
+            }
+            KeyEvent.ACTION_UP -> stopRepeat()
         }
         return true
     }
@@ -152,6 +180,7 @@ class IslandAccessibilityService : AccessibilityService() {
     }
 
     private fun teardown() {
+        stopRepeat()
         if (instance === this) instance = null
         IslandController.detachAccessibility(this)
     }
