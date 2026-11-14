@@ -43,6 +43,11 @@ class LiveBuilders(private val ctx: Context) {
 
     private fun isReply(a: Notification.Action) = a.remoteInputs?.any { it.allowFreeFormInput } == true
 
+    private val dialerPackages = setOf(
+        "com.android.dialer", "com.google.android.dialer", "com.samsung.android.dialer", "com.samsung.android.incallui",
+        "com.android.incallui", "com.android.server.telecom", "com.android.phone", "com.oneplus.dialer", "com.miui.voip",
+    )
+
     private val positiveRe = Regex("answer|accept|pick up")
     private val negativeRe = Regex("decline|reject|hang|end call|dismiss call|ignore|stop|cancel|delete")
 
@@ -84,16 +89,34 @@ class LiveBuilders(private val ctx: Context) {
             a.subtitle = d.text.ifEmpty { "Incoming call" }
             a.presentation = Presentation.EXPANDED
             a.trailing = Trailing.Dot(GREEN)
-            // The dialer's own Answer action often fails when fired from the background, so answer through Telecom
-            // when allowed and only fall back to the notification's action if that throws.
-            if (canTelecom) btns = btns.map { b ->
+            // Phone-app calls are answered through Telecom. Calls from other apps (WhatsApp, Telegram, Signal...) are
+            // not Telecom calls: acceptRingingCall does nothing for them, so their own Answer action must be sent, and
+            // if that can't start, open the call screen (full-screen intent, then the notification itself).
+            val systemCall = d.pkg in dialerPackages
+            if (canTelecom && systemCall) btns = btns.map { b ->
                 if (b.color != GREEN) b
                 else ActionButton(b.label, b.color, b.icon) {
                     try { telecom.acceptRingingCall() } catch (_: Exception) { b.run() }
                 }
             }
-            if (btns.none { it.color == GREEN } && canTelecom)
+            if (!systemCall) btns = btns.map { b ->
+                if (b.color != GREEN) b
+                else ActionButton(b.label, b.color, b.icon) {
+                    val act = d.actions.firstOrNull { it.title?.toString() == b.label.toString() && it.actionIntent != null }
+                    val ok = act?.actionIntent?.let { Intents.send(ctx, it) } ?: false
+                    if (!ok) {
+                        val fs = d.n.fullScreenIntent
+                        if (fs == null || !Intents.send(ctx, fs)) open(d)()
+                    }
+                }
+            }
+            if (btns.none { it.color == GREEN } && canTelecom && systemCall)
                 btns = btns + ActionButton("Answer", GREEN) { try { telecom.acceptRingingCall() } catch (_: Exception) {} }
+            if (btns.none { it.color == GREEN } && !systemCall)
+                btns = btns + ActionButton("Answer", GREEN) {
+                    val fs = d.n.fullScreenIntent
+                    if (fs == null || !Intents.send(ctx, fs)) open(d)()
+                }
             if (btns.none { it.color == RED } && canTelecom && android.os.Build.VERSION.SDK_INT >= 28)
                 btns = listOf(ActionButton("Decline", RED) { try { telecom.endCall() } catch (_: Exception) {} }) + btns
             // order: red (decline) first, green (answer) last, like a phone UI
@@ -214,7 +237,7 @@ class LiveBuilders(private val ctx: Context) {
         a.title = d.title.ifEmpty { d.appLabel }
         a.subtitle = listOf(d.bigText.ifEmpty { d.text }, d.subText).filter { it.isNotEmpty() }.joinToString("\n")
         a.accent = GREEN
-        a.icon = d.factory { d.largeIcon() ?: d.appIcon() }
+        a.icon = d.factory { d.appIcon() ?: d.largeIcon() }
         a.trailing = shortDistance(d)?.let { Trailing.Label(it) } ?: Trailing.None
         a.buttons = buttons(d)
         a.presentation = Presentation.BANNER
@@ -237,7 +260,7 @@ class LiveBuilders(private val ctx: Context) {
         a.title = d.title.ifEmpty { d.appLabel }
         a.subtitle = listOf(d.bigText.ifEmpty { d.text }, d.subText).filter { it.isNotEmpty() }.joinToString(" · ")
         a.accent = BLUE
-        a.icon = d.factory { d.largeIcon() ?: d.appIcon() }
+        a.icon = d.factory { d.appIcon() ?: d.largeIcon() }
         val f = d.progressFraction
         a.trailing = when {
             d.criticalText.isNotEmpty() -> Trailing.Label(d.criticalText)
@@ -261,7 +284,7 @@ class LiveBuilders(private val ctx: Context) {
         val a = IslandActivity(id(d), type)
         a.title = d.title.ifEmpty { d.appLabel }
         a.subtitle = d.subtitle
-        a.icon = d.factory { d.largeIcon() ?: d.appIcon() }
+        a.icon = d.factory { d.appIcon() ?: d.largeIcon() }
         a.buttons = buttons(d)
         a.reply = reply(d)
         a.onOpen = open(d)

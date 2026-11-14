@@ -23,6 +23,7 @@ import app.orbit.cameraisland.island.dpi
  * Pass a [title] for a sub-screen with a back button, or null to build a custom header (home screen).
  */
 class UiKit(val act: Activity, title: String? = null) {
+    @Suppress("unused") private val theme = Ui.init(act)   // first, so every colour below is the right one
     val prefs: SharedPreferences = Prefs.get(act)
     /** Per-screen values for the position / look settings (separate on foldables). */
     private val scopeKey: String? by lazy { ScreenProfile.scopeOrNull(act) }
@@ -133,8 +134,8 @@ class UiKit(val act: Activity, title: String? = null) {
     fun toggle(label: String, key: String, def: Boolean, desc: String? = null, onChange: ((Boolean) -> Unit)? = null): Switch {
         val sw = Switch(act).apply {
             val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
-            trackTintList = ColorStateList(states, intArrayOf(Ui.ACCENT, Color.rgb(58, 62, 74)))
-            thumbTintList = ColorStateList(states, intArrayOf(Color.WHITE, Color.rgb(182, 186, 196)))
+            trackTintList = ColorStateList(states, intArrayOf(Ui.ACCENT, Ui.SWITCH_OFF_TRACK))
+            thumbTintList = ColorStateList(states, intArrayOf(Color.WHITE, Ui.SWITCH_OFF_THUMB))
             isChecked = sp.bool(key, def)
             setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean(sp.key(key), c).apply(); onChange?.invoke(c) }
         }
@@ -155,7 +156,7 @@ class UiKit(val act: Activity, title: String? = null) {
             progress = (value - min).coerceIn(0, max - min)
             progressTintList = ColorStateList.valueOf(Ui.ACCENT)
             thumbTintList = ColorStateList.valueOf(Ui.ACCENT)
-            progressBackgroundTintList = ColorStateList.valueOf(Color.rgb(64, 68, 80))
+            progressBackgroundTintList = ColorStateList.valueOf(Ui.SLIDER_TRACK)
             splitTrack = false
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
@@ -213,7 +214,7 @@ class UiKit(val act: Activity, title: String? = null) {
         fun mark() {
             val cur = sp.int(key, def)
             swatches.forEachIndexed { i, v ->
-                (v.background as GradientDrawable).setStroke(dpi(if (palette[i] == cur) 3 else 1), if (palette[i] == cur) Color.WHITE else Ui.SURFACE2)
+                (v.background as GradientDrawable).setStroke(dpi(if (palette[i] == cur) 3 else 1), if (palette[i] == cur) Ui.TEXT else Ui.SURFACE2)
             }
         }
         val strip = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL }

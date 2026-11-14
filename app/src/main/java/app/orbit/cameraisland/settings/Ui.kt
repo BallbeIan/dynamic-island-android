@@ -27,23 +27,47 @@ import app.orbit.cameraisland.island.dpi
 
 /** Design tokens and small view helpers shared by every settings screen. */
 object Ui {
-    val BG = Color.rgb(13, 14, 17)
-    val SURFACE = Color.rgb(24, 26, 32)
-    val SURFACE2 = Color.rgb(36, 39, 47)
-    val DIVIDER = Color.rgb(38, 41, 50)
-    val TEXT = Color.rgb(242, 243, 245)
-    val TEXT2 = Color.rgb(139, 144, 155)
-    val ACCENT = Color.rgb(124, 140, 255)
+    /** Follows the system light / dark setting; call [init] before building any screen. */
+    var dark = true
+        private set
+
+    fun init(c: Context) {
+        dark = (c.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
+            android.content.res.Configuration.UI_MODE_NIGHT_NO
+    }
+
+    private fun pick(d: Int, l: Int) = if (dark) d else l
+    val BG get() = pick(Color.rgb(13, 14, 17), Color.rgb(242, 243, 247))
+    val SURFACE get() = pick(Color.rgb(24, 26, 32), Color.WHITE)
+    val SURFACE2 get() = pick(Color.rgb(36, 39, 47), Color.rgb(228, 230, 236))
+    val DIVIDER get() = pick(Color.rgb(38, 41, 50), Color.rgb(226, 228, 234))
+    val TEXT get() = pick(Color.rgb(242, 243, 245), Color.rgb(20, 22, 28))
+    val TEXT2 get() = pick(Color.rgb(139, 144, 155), Color.rgb(104, 109, 122))
+    val ACCENT get() = pick(Color.rgb(124, 140, 255), Color.rgb(74, 90, 230))
     val OK = Color.rgb(52, 211, 153)
     val WARN = Color.rgb(251, 191, 36)
     val BAD = Color.rgb(248, 113, 113)
+    val SWITCH_OFF_TRACK get() = pick(Color.rgb(58, 62, 74), Color.rgb(200, 204, 214))
+    val SWITCH_OFF_THUMB get() = pick(Color.rgb(182, 186, 196), Color.WHITE)
+    val SLIDER_TRACK get() = pick(Color.rgb(64, 68, 80), Color.rgb(208, 211, 220))
+
+    /** Dark icons on the system bars when the screen is light. */
+    @Suppress("DEPRECATION")
+    fun systemBars(act: Activity) {
+        val w = act.window
+        w.statusBarColor = Color.TRANSPARENT; w.navigationBarColor = Color.TRANSPARENT
+        var f = w.decorView.systemUiVisibility
+        val light = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or (if (Build.VERSION.SDK_INT >= 26) View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR else 0)
+        f = if (dark) f and light.inv() else f or light
+        w.decorView.systemUiVisibility = f
+    }
 
     fun round(c: Context, color: Int, radiusDp: Float) = GradientDrawable().apply {
         setColor(color); cornerRadius = c.dp(radiusDp)
     }
 
     fun ripple(content: Drawable?): Drawable =
-        RippleDrawable(ColorStateList.valueOf(Color.argb(36, 255, 255, 255)), content, ColorDrawable(Color.WHITE))
+        RippleDrawable(ColorStateList.valueOf(if (dark) Color.argb(36, 255, 255, 255) else Color.argb(28, 0, 0, 0)), content, ColorDrawable(Color.WHITE))
 
     fun text(c: Context, sp: Float, color: Int, medium: Boolean = false) = TextView(c).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
@@ -60,6 +84,7 @@ object Ui {
     @Suppress("DEPRECATION")
     fun padForInsets(act: Activity, root: View) {
         if (Build.VERSION.SDK_INT >= 30) act.window.setDecorFitsSystemWindows(false)
+        systemBars(act)
         root.setOnApplyWindowInsetsListener { v, ins ->
             v.setPadding(0, ins.systemWindowInsetTop, 0, ins.systemWindowInsetBottom)
             ins

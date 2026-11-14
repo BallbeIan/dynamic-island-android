@@ -989,7 +989,7 @@ class IslandOverlay(private val ctx: Context, private val windowType: Int) {
     private fun bindContent(p: IslandActivity) {
         val accent = accentOf(p)
         val inset = topInset()
-        banner.setTopInset(inset); mediaExp.setTopInset(inset); genericExp.setTopInset(inset)
+        banner.setCamera(cutoutHalf, inset); mediaExp.setTopInset(inset); genericExp.setCamera(cutoutHalf, inset)
         collapsed.bind(p, accent, dots)
         banner.bind(p, accent)
         if (p.kind == Kind.MEDIA) mediaExp.bind(p, accent) else genericExp.bind(p, accent)

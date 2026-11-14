@@ -81,6 +81,7 @@ class AppListActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Ui.init(this)
         kind = intent.getStringExtra("kind") ?: "modes"
         key = intent.getStringExtra("key") ?: ""
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Ui.BG) }

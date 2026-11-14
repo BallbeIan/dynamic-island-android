@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Island" parent="@android:style/Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#0D0E11</item>
-        <item name="android:statusBarColor">#0D0E11</item>
-        <item name="android:navigationBarColor">#0D0E11</item>
-        <item name="android:colorAccent">#7C8CFF</item>
-        <item name="android:colorControlActivated">#7C8CFF</item>
-        <item name="android:colorBackground">#181A20</item>
+    <style name="Theme.Island" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F2F3F7</item>
+        <item name="android:statusBarColor">#F2F3F7</item>
+        <item name="android:navigationBarColor">#F2F3F7</item>
+        <item name="android:colorAccent">#4A5AE6</item>
+        <item name="android:colorControlActivated">#4A5AE6</item>
+        <item name="android:colorBackground">#FFFFFF</item>
     </style>
 </resources>
