@@ -62,6 +62,8 @@ object Prefs {
     const val FULL_ALERT = "full_alert"
     const val FULL_TARGET = "full_target"
 
+    const val THEME = "app_theme"   // "light" / "dark"; unset = follow the system
+
     // ---- System alerts ----
     const val VOLUME_REPLACE = "volume_replace_panel"
     fun alertKey(type: String, field: String) = "alert_${type}_$field"

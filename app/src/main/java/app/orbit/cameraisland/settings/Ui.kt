@@ -32,8 +32,24 @@ object Ui {
         private set
 
     fun init(c: Context) {
-        dark = (c.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
-            android.content.res.Configuration.UI_MODE_NIGHT_NO
+        dark = when (Prefs.get(c).getString(Prefs.THEME, null)) {
+            "light" -> false
+            "dark" -> true
+            else -> (c.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) !=
+                android.content.res.Configuration.UI_MODE_NIGHT_NO
+        }
+    }
+
+    /** The sun / moon button for the top right corner: switches between light and dark and redraws the screen. */
+    fun themeButton(act: Activity) = FrameLayout(act).apply {
+        background = ripple(round(act, Color.TRANSPARENT, 24f))
+        contentDescription = if (dark) "Switch to light mode" else "Switch to dark mode"
+        setOnClickListener {
+            Prefs.get(act).edit().putString(Prefs.THEME, if (dark) "light" else "dark").apply()
+            act.recreate()
+        }
+        addView(ImageView(act).apply { setImageDrawable(ThemeIcon(dark, TEXT)) },
+            FrameLayout.LayoutParams(act.dpi(24), act.dpi(24), Gravity.CENTER))
     }
 
     private fun pick(d: Int, l: Int) = if (dark) d else l
@@ -55,6 +71,7 @@ object Ui {
     @Suppress("DEPRECATION")
     fun systemBars(act: Activity) {
         val w = act.window
+        w.setBackgroundDrawable(ColorDrawable(BG))
         w.statusBarColor = Color.TRANSPARENT; w.navigationBarColor = Color.TRANSPARENT
         var f = w.decorView.systemUiVisibility
         val light = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or (if (Build.VERSION.SDK_INT >= 26) View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR else 0)
@@ -96,7 +113,7 @@ object Ui {
         val bar = LinearLayout(act).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(act.dpi(6), 0, act.dpi(16), 0)
+            setPadding(act.dpi(6), 0, act.dpi(10), 0)
         }
         val back = FrameLayout(act).apply {
             background = ripple(null)
@@ -108,6 +125,7 @@ object Ui {
         bar.addView(back, LinearLayout.LayoutParams(act.dpi(48), act.dpi(48)))
         bar.addView(text(act, 20f, TEXT, medium = true).apply { text = title; isSingleLine = true },
             LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = act.dpi(4) })
+        bar.addView(themeButton(act), LinearLayout.LayoutParams(act.dpi(48), act.dpi(48)))
         return bar.also { it.minimumHeight = act.dpi(56) }
     }
 }
@@ -124,6 +142,34 @@ class ChevronDrawable(private val left: Boolean, color: Int) : Drawable() {
         if (left) { path.moveTo(w * 0.62f, h * 0.2f); path.lineTo(w * 0.34f, h * 0.5f); path.lineTo(w * 0.62f, h * 0.8f) }
         else { path.moveTo(w * 0.38f, h * 0.2f); path.lineTo(w * 0.66f, h * 0.5f); path.lineTo(w * 0.38f, h * 0.8f) }
         c.save(); c.translate(bounds.left.toFloat(), bounds.top.toFloat()); c.drawPath(path, p); c.restore()
+    }
+    override fun setAlpha(a: Int) { p.alpha = a }
+    override fun setColorFilter(cf: ColorFilter?) { p.colorFilter = cf }
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity() = PixelFormat.TRANSLUCENT
+}
+
+/** Sun (shown in dark mode: tap for light) or moon (shown in light mode: tap for dark). */
+class ThemeIcon(private val dark: Boolean, color: Int) : Drawable() {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color; strokeCap = Paint.Cap.ROUND }
+    override fun draw(c: Canvas) {
+        val w = bounds.width().toFloat(); val cx = bounds.exactCenterX(); val cy = bounds.exactCenterY()
+        if (dark) {
+            p.style = Paint.Style.FILL
+            c.drawCircle(cx, cy, w * 0.2f, p)
+            p.style = Paint.Style.STROKE; p.strokeWidth = w * 0.08f
+            for (i in 0 until 8) {
+                val a = Math.toRadians(i * 45.0)
+                val (x, y) = Math.cos(a).toFloat() to Math.sin(a).toFloat()
+                c.drawLine(cx + x * w * 0.32f, cy + y * w * 0.32f, cx + x * w * 0.45f, cy + y * w * 0.45f, p)
+            }
+        } else {
+            p.style = Paint.Style.FILL
+            val moon = Path().apply { addCircle(cx, cy, w * 0.4f, Path.Direction.CW) }
+            val bite = Path().apply { addCircle(cx + w * 0.22f, cy - w * 0.16f, w * 0.34f, Path.Direction.CW) }
+            moon.op(bite, Path.Op.DIFFERENCE)
+            c.drawPath(moon, p)
+        }
     }
     override fun setAlpha(a: Int) { p.alpha = a }
     override fun setColorFilter(cf: ColorFilter?) { p.colorFilter = cf }

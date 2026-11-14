@@ -32,7 +32,12 @@ class MainActivity : Activity() {
                 text = "A camera island for your Android"; setPadding(0, ui.dpi(2), 0, 0)
             })
         }
-        ui.raw(hero, 0)
+        val header = android.widget.FrameLayout(this).apply {
+            addView(hero)
+            addView(Ui.themeButton(this@MainActivity), android.widget.FrameLayout.LayoutParams(ui.dpi(48), ui.dpi(48),
+                android.view.Gravity.TOP or android.view.Gravity.END).apply { topMargin = ui.dpi(8) })
+        }
+        ui.raw(header, 0)
 
         ui.section("Setup")
         checklist = SetupChecklist(ui)
